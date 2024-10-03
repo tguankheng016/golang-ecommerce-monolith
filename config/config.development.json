@@ -1,0 +1,12 @@
+{
+    "appOptions": {
+        "name": "golang-ecommerce-monolith"
+    },
+    "gormOptions": {
+        "host": "localhost",
+        "port": 5433,
+        "user": "postgres",
+        "password": "postgres",
+        "dbName": "golang_ecommerce_monolith_db"
+    }
+}

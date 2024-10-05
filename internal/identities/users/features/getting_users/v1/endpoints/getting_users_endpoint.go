@@ -33,7 +33,7 @@ func MapRoute(db *gorm.DB, log logger.ILogger, echo *echo.Echo, ctx context.Cont
 // @Accept json
 // @Produce json
 // @Param GetUsersRequestDto query GetUsersRequestDto false "GetUsersRequestDto"
-// @Success 200 {array} GetUsersResponseDto
+// @Success 200 {object} GetUsersResponseDto
 // @Security ApiKeyAuth
 // @Router /api/v1/users [get]
 func getAllUsers(db *gorm.DB, log logger.ILogger, ctx context.Context) echo.HandlerFunc {

@@ -10,6 +10,7 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http"
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/server"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/swagger"
@@ -28,6 +29,7 @@ func main() {
 				http.NewContext,
 				database.NewGormDB,
 				echoServer.NewEchoServer,
+				jwt.NewJwtTokenGenerator,
 			),
 			fx.Invoke(server.RunServers),
 			fx.Invoke(swagger.ConfigSwagger),

@@ -1,4 +1,22 @@
 definitions:
+  AuthenticateRequest:
+    properties:
+      password:
+        type: string
+      usernameOrEmailAddress:
+        type: string
+    type: object
+  AuthenticateResult:
+    properties:
+      accessToken:
+        type: string
+      expireInSeconds:
+        type: integer
+      refreshToken:
+        type: string
+      refreshTokenExpireInSeconds:
+        type: integer
+    type: object
   GetUsersResponseDto:
     properties:
       items:
@@ -24,6 +42,30 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/v1/accounts/authenticate:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate
+      parameters:
+      - description: AuthenticateRequest
+        in: body
+        name: AuthenticateRequest
+        required: true
+        schema:
+          $ref: '#/definitions/AuthenticateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AuthenticateResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Authenticate
+      tags:
+      - Accounts
   /api/v1/users:
     get:
       consumes:
@@ -48,9 +90,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/GetUsersResponseDto'
-            type: array
+            $ref: '#/definitions/GetUsersResponseDto'
       security:
       - ApiKeyAuth: []
       summary: Get all users

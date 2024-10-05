@@ -15,6 +15,45 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/accounts/authenticate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Authenticate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Authenticate",
+                "parameters": [
+                    {
+                        "description": "AuthenticateRequest",
+                        "name": "AuthenticateRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthenticateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/AuthenticateResult"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -59,10 +98,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/GetUsersResponseDto"
-                            }
+                            "$ref": "#/definitions/GetUsersResponseDto"
                         }
                     }
                 }
@@ -70,6 +106,34 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "AuthenticateRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "usernameOrEmailAddress": {
+                    "type": "string"
+                }
+            }
+        },
+        "AuthenticateResult": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "expireInSeconds": {
+                    "type": "integer"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "refreshTokenExpireInSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
         "GetUsersResponseDto": {
             "type": "object",
             "properties": {

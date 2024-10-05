@@ -1,0 +1,31 @@
+{
+    "appOptions": {
+        "name": "golang-ecommerce-monolith"
+    },
+    "gormOptions": {
+        "host": "localhost",
+        "port": 5433,
+        "user": "postgres",
+        "password": "myStong_Password123%23",
+        "dbName": "golang_ecommerce_monolith_db"
+    },
+    "echoOptions": {
+        "name": "ecommerceservice",
+        "port": ":8000",
+        "development": true,
+        "timeout": 30,
+        "basePath": "/api/v1",
+        "host": "http://localhost",
+        "debugHeaders": true,
+        "httpClientDebug": true,
+        "debugErrorsResponse": true,
+        "ignoreLogUrls": [
+            "metrics"
+        ]
+    },
+    "logOptions": {
+        "level": "debug",
+        "logType": 0,
+        "callerEnabled": false
+    }
+}

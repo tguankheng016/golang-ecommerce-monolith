@@ -17,6 +17,18 @@ func (h *GormOptions) GetDatasource() string {
 		h.Password,
 		h.Host,
 		h.Port,
+		h.DBName,
+	)
+
+	return datasource
+}
+
+func (h *GormOptions) GetPostgresDatasource() string {
+	datasource := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		h.User,
+		h.Password,
+		h.Host,
+		h.Port,
 		"postgres",
 	)
 

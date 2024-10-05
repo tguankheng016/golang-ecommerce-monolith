@@ -19,7 +19,7 @@ func NewGormDB(options *GormOptions) (*gorm.DB, error) {
 		return nil, errors.New("Database name is required in config.json")
 	}
 
-	err := createDb(datasource, options)
+	err := createDb(options)
 
 	if err != nil {
 		return nil, err
@@ -46,24 +46,19 @@ func NewGormDB(options *GormOptions) (*gorm.DB, error) {
 	return gormDb, err
 }
 
-func createDb(datasource string, options *GormOptions) error {
+func createDb(options *GormOptions) error {
+	datasource := options.GetPostgresDatasource()
+
 	// Create Db If Not Exist
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(datasource)))
 
-	var exists int
-	rows, err := sqldb.Query(fmt.Sprintf("SELECT 1 FROM  pg_catalog.pg_database WHERE datname='%s'", options.DBName))
+	var exists bool
+	err := sqldb.QueryRow(fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_database WHERE datname='%s')", options.DBName)).Scan(&exists)
 	if err != nil {
 		return err
 	}
 
-	if rows.Next() {
-		err = rows.Scan(&exists)
-		if err != nil {
-			return err
-		}
-	}
-
-	if exists == 1 {
+	if exists {
 		return nil
 	}
 

@@ -58,21 +58,27 @@ func BindConfigKey[T any](configKey string, env environment.Environment) (T, err
 
 func getConfigRootPath() (string, error) {
 	// Get the current working directory
-	// Getwd gives us the current working directory that we are running our app with `go run` command. in goland we can specify this working directory for the project
-	wd, err := os.Getwd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(fmt.Sprintf("Current working directory is: %s", wd))
 
-	// Get the absolute path of the executed project directory
-	absCurrentDir, err := filepath.Abs(wd)
-	if err != nil {
-		return "", err
+	// Traverse up to find the go.mod file
+	rootPath := cwd
+	for {
+		if _, err := os.Stat(filepath.Join(rootPath, "go.mod")); err == nil {
+			// Found the go.mod file
+			break
+		}
+		parent := filepath.Dir(rootPath)
+		if parent == rootPath {
+			return "", err
+		}
+		rootPath = parent
 	}
 
 	// Get the path to the "config" folder within the project directory
-	configPath := filepath.Join(absCurrentDir, "config")
+	configPath := filepath.Join(rootPath, "config")
 
 	return configPath, nil
 }

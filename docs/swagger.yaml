@@ -1,0 +1,59 @@
+definitions:
+  GetUsersResponseDto:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/UserDto'
+        type: array
+      totalCount:
+        type: integer
+    type: object
+  UserDto:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      userName:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users
+      parameters:
+      - in: query
+        name: filters
+        type: string
+      - in: query
+        name: maxResultCount
+        type: integer
+      - in: query
+        name: skipCount
+        type: integer
+      - in: query
+        name: sorting
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GetUsersResponseDto'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Get all users
+      tags:
+      - Users
+swagger: "2.0"

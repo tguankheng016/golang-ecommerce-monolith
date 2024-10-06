@@ -26,6 +26,18 @@ definitions:
       totalCount:
         type: integer
     type: object
+  RefreshTokenRequest:
+    properties:
+      token:
+        type: string
+    type: object
+  RefreshTokenResult:
+    properties:
+      accessToken:
+        type: string
+      expireInSeconds:
+        type: integer
+    type: object
   UserDto:
     properties:
       email:
@@ -64,6 +76,30 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Authenticate
+      tags:
+      - Accounts
+  /api/v1/accounts/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access token
+      parameters:
+      - description: RefreshTokenRequest
+        in: body
+        name: RefreshTokenRequest
+        required: true
+        schema:
+          $ref: '#/definitions/RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/RefreshTokenResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Refresh access token
       tags:
       - Accounts
   /api/v1/users:

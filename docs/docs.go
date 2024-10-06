@@ -54,6 +54,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/accounts/refresh-token": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Refresh access token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "RefreshTokenRequest",
+                        "name": "RefreshTokenRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RefreshTokenResult"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -144,6 +183,25 @@ const docTemplate = `{
                     }
                 },
                 "totalCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "RefreshTokenRequest": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "RefreshTokenResult": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "expireInSeconds": {
                     "type": "integer"
                 }
             }

@@ -59,19 +59,21 @@ func authenticate(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log log
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		refreshToken, refreshTokenKey, err := jwtTokenGenerator.GenerateRefreshToken(&user)
+		refreshToken, refreshTokenKey, refreshTokenSeconds, err := jwtTokenGenerator.GenerateRefreshToken(&user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		accessToken, err := jwtTokenGenerator.GenerateAccessToken(&user, refreshTokenKey)
+		accessToken, accessTokenSeconds, err := jwtTokenGenerator.GenerateAccessToken(&user, refreshTokenKey)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		result := &AuthenticateResult{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			AccessToken:                 accessToken,
+			ExpireInSeconds:             accessTokenSeconds,
+			RefreshToken:                refreshToken,
+			RefreshTokenExpireInSeconds: refreshTokenSeconds,
 		}
 
 		return c.JSON(http.StatusOK, result)

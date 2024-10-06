@@ -29,8 +29,8 @@ const (
 )
 
 type IJwtTokenGenerator interface {
-	GenerateAccessToken(user *models.User, refreshTokenKey string) (string, error)
-	GenerateRefreshToken(user *models.User) (string, string, error)
+	GenerateAccessToken(user *models.User, refreshTokenKey string) (string, int, error)
+	GenerateRefreshToken(user *models.User) (string, string, int, error)
 }
 
 type jwtTokenGenerator struct {
@@ -53,21 +53,23 @@ func NewJwtTokenGenerator(db *gorm.DB, client *redis.Client, logger logger.ILogg
 	}
 }
 
-func (j *jwtTokenGenerator) GenerateAccessToken(user *models.User, refreshTokenKey string) (string, error) {
+func (j *jwtTokenGenerator) GenerateAccessToken(user *models.User, refreshTokenKey string) (string, int, error) {
 	claims, err := j.createJwtClaims(user, AccessToken, refreshTokenKey)
 
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return j.createToken(claims)
+	accessToken, err := j.createToken(claims)
+
+	return accessToken, int(AccessTokenExpirationTime.Seconds()), err
 }
 
-func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, string, error) {
+func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, string, int, error) {
 	claims, err := j.createJwtClaims(user, RefreshToken, "")
 
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
 	refreshToken, err := j.createToken(claims)
@@ -75,7 +77,7 @@ func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, str
 	refreshTokenKey := claims[constants.TokenValidityKey]
 	refreshTokenStr := fmt.Sprintf("%s", refreshTokenKey)
 
-	return refreshToken, refreshTokenStr, err
+	return refreshToken, refreshTokenStr, int(RefreshTokenExpirationTime.Seconds()), err
 }
 
 func (j *jwtTokenGenerator) createToken(claims jwtGo.MapClaims) (string, error) {

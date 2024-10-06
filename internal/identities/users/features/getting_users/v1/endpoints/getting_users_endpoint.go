@@ -7,6 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/mapper"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
@@ -21,9 +23,9 @@ type GetUsersResponseDto struct {
 	*pagination.PageResultDto[dtos.UserDto]
 } // @name GetUsersResponseDto
 
-func MapRoute(db *gorm.DB, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(db *gorm.DB, jwt jwt.IJwtTokenValidator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
 	group := echo.Group("/api/v1/users")
-	group.GET("", getAllUsers(db, log, ctx))
+	group.GET("", getAllUsers(db, log, ctx), middlewares.ValidateToken(jwt))
 }
 
 // GetAllUsers

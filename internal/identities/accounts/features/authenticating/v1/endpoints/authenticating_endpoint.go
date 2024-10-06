@@ -59,7 +59,7 @@ func authenticate(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log log
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		accessToken, err := jwtTokenGenerator.GenerateAccessToken(db, &user, "")
+		accessToken, err := jwtTokenGenerator.GenerateAccessToken(&user, "")
 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)

@@ -11,7 +11,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConfigEndpoints(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
-	getting_users.MapRoute(db, log, echo, ctx)
+func ConfigEndpoints(
+	db *gorm.DB,
+	jwtTokenGenerator jwt.IJwtTokenGenerator,
+	jwtTokenValidator jwt.IJwtTokenValidator,
+	log logger.ILogger,
+	echo *echo.Echo,
+	ctx context.Context,
+) {
+	getting_users.MapRoute(db, jwtTokenValidator, log, echo, ctx)
 	authenticate.MapRoute(db, jwtTokenGenerator, log, echo, ctx)
 }

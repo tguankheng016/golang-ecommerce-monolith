@@ -6,6 +6,7 @@ import (
 	identitySeed "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
 	identityMapping "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/mappings"
 	identityModel "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/middleware"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/config/environment"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http"
@@ -19,6 +20,9 @@ import (
 	"go.uber.org/fx"
 )
 
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	fx.New(
 		fx.Options(
@@ -30,11 +34,17 @@ func main() {
 				database.NewGormDB,
 				echoServer.NewEchoServer,
 				jwt.NewJwtTokenGenerator,
+				jwt.NewJwtTokenValidator,
 			),
 			fx.Invoke(server.RunServers),
+			fx.Invoke(middleware.ConfigMiddlewares),
 			fx.Invoke(swagger.ConfigSwagger),
 			fx.Invoke(func(gorm *gorm.DB) error {
-				err := database.Migrate(gorm, &identityModel.Role{}, &identityModel.User{})
+				err := database.Migrate(gorm,
+					&identityModel.Role{},
+					&identityModel.User{},
+					&identityModel.UserToken{},
+				)
 				if err != nil {
 					return err
 				}

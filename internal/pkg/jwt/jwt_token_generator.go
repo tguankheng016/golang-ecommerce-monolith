@@ -1,14 +1,18 @@
 package jwt
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/gofrs/uuid"
 	jwtGo "github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/constants"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"gorm.io/gorm"
 )
 
@@ -26,6 +30,7 @@ const (
 
 type IJwtTokenGenerator interface {
 	GenerateAccessToken(user *models.User, refreshTokenKey string) (string, error)
+	GenerateRefreshToken(user *models.User) (string, string, error)
 }
 
 type jwtTokenGenerator struct {
@@ -33,14 +38,18 @@ type jwtTokenGenerator struct {
 	issuer    string
 	audience  string
 	db        *gorm.DB
+	client    *redis.Client
+	logger    logger.ILogger
 }
 
-func NewJwtTokenGenerator(db *gorm.DB, authOptions *AuthOptions) IJwtTokenGenerator {
+func NewJwtTokenGenerator(db *gorm.DB, client *redis.Client, logger logger.ILogger, authOptions *AuthOptions) IJwtTokenGenerator {
 	return &jwtTokenGenerator{
 		secretKey: authOptions.SecretKey,
 		issuer:    authOptions.Issuer,
 		audience:  authOptions.Audience,
 		db:        db,
+		client:    client,
+		logger:    logger,
 	}
 }
 
@@ -52,6 +61,21 @@ func (j *jwtTokenGenerator) GenerateAccessToken(user *models.User, refreshTokenK
 	}
 
 	return j.createToken(claims)
+}
+
+func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, string, error) {
+	claims, err := j.createJwtClaims(user, RefreshToken, "")
+
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := j.createToken(claims)
+
+	refreshTokenKey := claims[constants.TokenValidityKey]
+	refreshTokenStr := fmt.Sprintf("%s", refreshTokenKey)
+
+	return refreshToken, refreshTokenStr, err
 }
 
 func (j *jwtTokenGenerator) createToken(claims jwtGo.MapClaims) (string, error) {
@@ -106,6 +130,11 @@ func (j *jwtTokenGenerator) createJwtClaims(user *models.User, tokenType TokenTy
 
 	if err := j.db.Create(&userToken).Error; err != nil {
 		return nil, errors.Wrap(err, "error when inserting user token into the database.")
+	}
+
+	if err := j.client.Set(context.Background(), generateTokenValidityCacheKey(user.Id, tokenValidityKey.String()), tokenValidityKey.String(), DefaultCacheExpiration).Err(); err != nil {
+		// Dont return just log
+		j.logger.Error(err)
 	}
 
 	return claims, nil

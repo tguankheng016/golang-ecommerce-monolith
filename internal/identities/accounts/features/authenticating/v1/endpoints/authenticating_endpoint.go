@@ -48,25 +48,30 @@ func authenticate(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log log
 		}
 
 		var user models.User
+
 		err := db.Where("user_name = ? OR email = ?", request.UsernameOrEmailAddress, request.UsernameOrEmailAddress).First(&user).Error
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		ok, err := security.ComparePasswords(user.Password, request.Password)
-
 		if err != nil || !ok {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		accessToken, err := jwtTokenGenerator.GenerateAccessToken(&user, "")
+		refreshToken, refreshTokenKey, err := jwtTokenGenerator.GenerateRefreshToken(&user)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
 
+		accessToken, err := jwtTokenGenerator.GenerateAccessToken(&user, refreshTokenKey)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		result := &AuthenticateResult{
-			AccessToken: accessToken,
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
 		}
 
 		return c.JSON(http.StatusOK, result)

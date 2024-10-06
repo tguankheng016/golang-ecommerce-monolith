@@ -13,6 +13,7 @@ import (
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/redis"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/server"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/swagger"
 	"gorm.io/gorm"
@@ -32,11 +33,13 @@ func main() {
 				logger.InitLogger,
 				http.NewContext,
 				database.NewGormDB,
+				redis.NewRedisClient,
 				echoServer.NewEchoServer,
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
 			),
 			fx.Invoke(server.RunServers),
+			fx.Invoke(redis.RegisterRedisServer),
 			fx.Invoke(middleware.ConfigMiddlewares),
 			fx.Invoke(swagger.ConfigSwagger),
 			fx.Invoke(func(gorm *gorm.DB) error {

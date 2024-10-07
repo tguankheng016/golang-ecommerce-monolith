@@ -17,6 +17,25 @@ definitions:
       refreshTokenExpireInSeconds:
         type: integer
     type: object
+  CreateUserDto:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      password:
+        type: string
+      roleIds:
+        items:
+          type: integer
+        type: array
+      userName:
+        type: string
+    type: object
   GetUsersResponseDto:
     properties:
       items:
@@ -102,6 +121,29 @@ paths:
       summary: Refresh access token
       tags:
       - Accounts
+  /api/v1/user:
+    post:
+      consumes:
+      - application/json
+      description: Create new user
+      parameters:
+      - description: CreateUserDto
+        in: body
+        name: CreateUserDto
+        schema:
+          $ref: '#/definitions/CreateUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserDto'
+      security:
+      - ApiKeyAuth: []
+      summary: Create new user
+      tags:
+      - Users
   /api/v1/users:
     get:
       consumes:

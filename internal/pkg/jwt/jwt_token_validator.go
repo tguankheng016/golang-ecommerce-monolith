@@ -185,7 +185,7 @@ func (j *jwtTokenValidator) validateTokenWithTokenKeyFromDb(userId int64, tokenK
 	tokenCacheKey := generateTokenValidityCacheKey(userId, tokenKey)
 
 	var count int64
-	if err := j.db.Model(&models.UserToken{}).Where("user_id = ? AND token_key = ?", userId, tokenKey).Where("expiration_time > ?", time.Now()).Count(&count).Error; err != nil || count == 0 {
+	if err := j.db.Model(&models.UserToken{}).Where("user_id = ? AND token_key = ? AND expiration_time > ?", userId, tokenKey, time.Now()).Count(&count).Error; err != nil || count == 0 {
 		return false
 	}
 

@@ -3,22 +3,20 @@ package data
 import (
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/constants"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/security"
 
 	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
 
-func DataSeeder(gorm *gorm.DB) error {
+func DataSeeder(gorm *gorm.DB, userManager IUserManager) error {
 	if err := seedRole(gorm); err != nil {
 		return err
 	}
 
-	if err := seedUser(gorm); err != nil {
+	if err := seedUser(gorm, userManager); err != nil {
 		return err
 	}
 
@@ -40,29 +38,19 @@ func seedRole(gorm *gorm.DB) error {
 	return nil
 }
 
-func seedUser(gorm *gorm.DB) error {
+func seedUser(gorm *gorm.DB, userManager IUserManager) error {
 	if (gorm.Find(&models.User{}).RowsAffected <= 0) {
-		pass, err := security.HashPassword("123qwe")
-		if err != nil {
-			return err
-		}
-
-		securityStamp, err := uuid.NewV4()
-		if err != nil {
-			return err
-		}
+		pass := "123qwe"
 
 		adminUser := &models.User{
-			FirstName:     "admin",
-			LastName:      "Tan",
-			UserName:      constants.DefaultAdminUsername,
-			Email:         "admin@testgk.com",
-			SecurityStamp: securityStamp,
-			Password:      pass,
-			CreatedAt:     time.Now(),
+			FirstName: "admin",
+			LastName:  "Tan",
+			UserName:  constants.DefaultAdminUsername,
+			Email:     "admin@testgk.com",
+			CreatedAt: time.Now(),
 		}
 
-		if err := gorm.Create(adminUser).Error; err != nil {
+		if err := userManager.CreateUser(adminUser, pass); err != nil {
 			return errors.Wrap(err, "error in the inserting admin user into the database.")
 		}
 
@@ -77,16 +65,14 @@ func seedUser(gorm *gorm.DB) error {
 		}
 
 		normalUser := &models.User{
-			FirstName:     "User",
-			LastName:      "Tan",
-			UserName:      "gkuser123",
-			Email:         "user@testgk.com",
-			SecurityStamp: securityStamp,
-			Password:      pass,
-			CreatedAt:     time.Now(),
+			FirstName: "User",
+			LastName:  "Tan",
+			UserName:  "gkuser123",
+			Email:     "user@testgk.com",
+			CreatedAt: time.Now(),
 		}
 
-		if err := gorm.Create(normalUser).Error; err != nil {
+		if err := userManager.CreateUser(normalUser, pass); err != nil {
 			return errors.Wrap(err, "error in the inserting normal user into the database.")
 		}
 	}

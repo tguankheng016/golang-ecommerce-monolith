@@ -93,6 +93,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/user": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create new user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create new user",
+                "parameters": [
+                    {
+                        "description": "CreateUserDto",
+                        "name": "CreateUserDto",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/CreateUserDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserDto"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -170,6 +208,35 @@ const docTemplate = `{
                 },
                 "refreshTokenExpireInSeconds": {
                     "type": "integer"
+                }
+            }
+        },
+        "CreateUserDto": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "roleIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "userName": {
+                    "type": "string"
                 }
             }
         },

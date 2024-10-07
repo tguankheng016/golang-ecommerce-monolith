@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/config"
 	identityConfiguration "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/configurations"
-	identitySeed "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
-	identityMapping "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/mappings"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
+	identityData "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
 	identityModel "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/middleware"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/config/environment"
@@ -39,12 +39,13 @@ func main() {
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
 				permissions.NewPermissionChecker,
+				identityData.NewUserManager,
 			),
 			fx.Invoke(server.RunServers),
 			fx.Invoke(redis.RegisterRedisServer),
 			fx.Invoke(middleware.ConfigMiddlewares),
 			fx.Invoke(swagger.ConfigSwagger),
-			fx.Invoke(func(gorm *gorm.DB) error {
+			fx.Invoke(func(gorm *gorm.DB, userManager data.IUserManager) error {
 				err := database.Migrate(gorm,
 					&identityModel.Role{},
 					&identityModel.User{},
@@ -54,9 +55,8 @@ func main() {
 				if err != nil {
 					return err
 				}
-				return identitySeed.DataSeeder(gorm)
+				return identityData.DataSeeder(gorm, userManager)
 			}),
-			fx.Invoke(identityMapping.ConfigureMappings),
 			fx.Invoke(identityConfiguration.ConfigEndpoints),
 		),
 	).Run()

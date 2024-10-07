@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jinzhu/copier"
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/mapper"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"gorm.io/gorm"
@@ -85,7 +85,8 @@ func getAllUsers(db *gorm.DB, log logger.ILogger, ctx context.Context) echo.Hand
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		userDtos, err := mapper.Map[[]dtos.UserDto](users)
+		var userDtos []dtos.UserDto
+		copier.Copy(&userDtos, &users)
 
 		if err != nil {
 			log.Warnf("BindUsers", err)

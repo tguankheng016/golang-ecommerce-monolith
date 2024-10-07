@@ -49,10 +49,6 @@ func refreshToken(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtToke
 			return echo.NewHTTPError(http.StatusUnauthorized, err)
 		}
 
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, err)
-		}
-
 		var user models.User
 
 		if err := db.First(&user, userId).Error; err != nil {

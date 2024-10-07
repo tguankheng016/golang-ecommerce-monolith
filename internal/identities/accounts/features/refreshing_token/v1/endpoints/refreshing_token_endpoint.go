@@ -3,10 +3,8 @@ package endpoints
 import (
 	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	appConstants "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/constants"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
@@ -46,17 +44,10 @@ func refreshToken(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtToke
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		claims, err := jwtTokenValidator.ValidateToken(request.Token, jwt.RefreshToken)
+		userId, claims, err := jwtTokenValidator.ValidateToken(request.Token, jwt.RefreshToken)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, err)
 		}
-
-		sub, ok := claims["sub"].(string)
-		if !ok {
-			return echo.NewHTTPError(http.StatusBadRequest, errors.New("Invalid token"))
-		}
-
-		userId, err := strconv.ParseInt(sub, 10, 64)
 
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)

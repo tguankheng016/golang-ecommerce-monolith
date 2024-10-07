@@ -12,6 +12,7 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/mapper"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"gorm.io/gorm"
 )
 
@@ -23,9 +24,9 @@ type GetUsersResponseDto struct {
 	*pagination.PageResultDto[dtos.UserDto]
 } // @name GetUsersResponseDto
 
-func MapRoute(db *gorm.DB, jwt jwt.IJwtTokenValidator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(db *gorm.DB, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
 	group := echo.Group("/api/v1/users")
-	group.GET("", getAllUsers(db, log, ctx), middlewares.ValidateToken(jwt))
+	group.GET("", getAllUsers(db, log, ctx), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
 }
 
 // GetAllUsers

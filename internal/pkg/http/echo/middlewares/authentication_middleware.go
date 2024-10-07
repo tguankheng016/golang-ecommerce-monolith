@@ -26,9 +26,12 @@ func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
 			}
 
 			// Validate jwt access token
-			if _, err := validator.ValidateToken(auth, jwt.AccessToken); err != nil {
+			userId, _, err := validator.ValidateToken(auth, jwt.AccessToken)
+			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, err)
 			}
+
+			c.Set("userId", userId)
 
 			return next(c)
 		}

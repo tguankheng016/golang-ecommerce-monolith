@@ -16,7 +16,7 @@ import (
 )
 
 type IJwtTokenValidator interface {
-	ValidateToken(token string, tokenType TokenType) (jwtGo.MapClaims, error)
+	ValidateToken(token string, tokenType TokenType) (int64, jwtGo.MapClaims, error)
 }
 
 type jwtTokenValidator struct {
@@ -43,13 +43,13 @@ func NewJwtTokenValidator(db *gorm.DB, client *redis.Client, logger logger.ILogg
 	}
 }
 
-func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenType) (jwtGo.MapClaims, error) {
+func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenType) (int64, jwtGo.MapClaims, error) {
 	token, err := jwtGo.ParseWithClaims(tokenString, jwtGo.MapClaims{}, func(token *jwtGo.Token) (interface{}, error) {
 		return []byte(j.secretKey), nil
 	})
 
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	if claims, ok := token.Claims.(jwtGo.MapClaims); ok && token.Valid {
@@ -57,46 +57,46 @@ func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenTyp
 		tokenTypeInt, _ := strconv.Atoi(claims["token_type"].(string))
 
 		if tokenTypeInt != int(tokenType) {
-			return nil, errors.New("Invalid token type")
+			return 0, nil, errors.New("Invalid token type")
 		}
 
 		// token is valid and has not expired
 		iss := token.Header["iss"]
 		if iss != j.issuer {
 			// handle invalid issuer
-			return nil, errors.New("Invalid token issuer")
+			return 0, nil, errors.New("Invalid token issuer")
 		}
 
 		aud := token.Header["aud"]
 		if aud != j.audience {
 			// handle invalid audience
-			return nil, errors.New("Invalid token audience")
+			return 0, nil, errors.New("Invalid token audience")
 		}
 
 		sub, ok := claims["sub"].(string)
 		if !ok {
 			// handle error
-			return nil, errors.New("Invalid sub")
+			return 0, nil, errors.New("Invalid sub")
 		}
 
 		userId, err := strconv.ParseInt(sub, 10, 64)
 
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
 		if err := j.validateTokenWithSecurityStamp(userId, claims); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
 		if err := j.validateTokenWithTokenKey(userId, claims); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
-		return claims, nil
+		return userId, claims, nil
 	}
 
-	return nil, errors.New("Invalid token")
+	return 0, nil, errors.New("Invalid token")
 }
 
 func (j *jwtTokenValidator) validateTokenWithSecurityStamp(userId int64, claims jwtGo.MapClaims) error {

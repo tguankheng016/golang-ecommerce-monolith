@@ -13,6 +13,7 @@ import (
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/redis"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/server"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/swagger"
@@ -37,6 +38,7 @@ func main() {
 				echoServer.NewEchoServer,
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
+				permissions.NewPermissionChecker,
 			),
 			fx.Invoke(server.RunServers),
 			fx.Invoke(redis.RegisterRedisServer),
@@ -47,6 +49,7 @@ func main() {
 					&identityModel.Role{},
 					&identityModel.User{},
 					&identityModel.UserToken{},
+					&identityModel.UserRolePermission{},
 				)
 				if err != nil {
 					return err

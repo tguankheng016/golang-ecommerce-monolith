@@ -8,12 +8,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
-	"gorm.io/gorm"
 )
 
 type GetUsersRequestDto struct {
@@ -24,9 +24,9 @@ type GetUsersResponseDto struct {
 	*pagination.PageResultDto[dtos.UserDto]
 } // @name GetUsersResponseDto
 
-func MapRoute(db *gorm.DB, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
 	group := echo.Group("/api/v1/users")
-	group.GET("", getAllUsers(db, log, ctx), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
+	group.GET("", getAllUsers(log, ctx), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
 }
 
 // GetAllUsers
@@ -39,8 +39,13 @@ func MapRoute(db *gorm.DB, jwt jwt.IJwtTokenValidator, checker permissions.IPerm
 // @Success 200 {object} GetUsersResponseDto
 // @Security ApiKeyAuth
 // @Router /api/v1/users [get]
-func getAllUsers(db *gorm.DB, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func getAllUsers(log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		tx, err := database.RetrieveTxContext(c)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+
 		var users []models.User
 
 		pageRequest, err := pagination.GetPageRequestFromCtx(c)
@@ -57,8 +62,8 @@ func getAllUsers(db *gorm.DB, log logger.ILogger, ctx context.Context) echo.Hand
 
 		userPageRequest := &GetUsersRequestDto{PageRequest: pageRequest}
 
-		query := db
-		countQuery := db.Model(&models.User{})
+		query := tx
+		countQuery := tx.Model(&models.User{})
 
 		if userPageRequest.Filters != "" {
 			likeExpr := userPageRequest.BuildFiltersExpr(fields...)

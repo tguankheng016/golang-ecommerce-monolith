@@ -6,7 +6,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/security"
 	"gorm.io/gorm"
 )
@@ -18,14 +17,12 @@ type IUserManager interface {
 }
 
 type userManager struct {
-	db     *gorm.DB
-	logger logger.ILogger
+	db *gorm.DB
 }
 
-func NewUserManager(db *gorm.DB, logger logger.ILogger) IUserManager {
+func NewUserManager(db *gorm.DB) IUserManager {
 	return &userManager{
-		db:     db,
-		logger: logger,
+		db: db,
 	}
 }
 

@@ -7,9 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	appConstants "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/constants"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
-	"gorm.io/gorm"
 )
 
 type RefreshTokenRequest struct {
@@ -21,9 +21,9 @@ type RefreshTokenResult struct {
 	ExpireInSeconds int    `json:"expireInSeconds"`
 } // @name RefreshTokenResult
 
-func MapRoute(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
 	group := echo.Group("/api/v1/accounts/refresh-token")
-	group.POST("", refreshToken(db, jwtTokenGenerator, jwtTokenValidator, log, ctx))
+	group.POST("", refreshToken(jwtTokenGenerator, jwtTokenValidator, log, ctx))
 }
 
 // RefreshToken
@@ -36,12 +36,17 @@ func MapRoute(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenVal
 // @Success 200 {object} RefreshTokenResult
 // @Security ApiKeyAuth
 // @Router /api/v1/accounts/refresh-token [post]
-func refreshToken(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func refreshToken(jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		request := &RefreshTokenRequest{}
 
 		if err := c.Bind(request); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+
+		tx, err := database.RetrieveTxContext(c)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
 		userId, claims, err := jwtTokenValidator.ValidateToken(request.Token, jwt.RefreshToken)
@@ -50,8 +55,7 @@ func refreshToken(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtToke
 		}
 
 		var user models.User
-
-		if err := db.First(&user, userId).Error; err != nil {
+		if err := tx.First(&user, userId).Error; err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 

@@ -3,20 +3,19 @@ package main
 import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/config"
 	identityConfiguration "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/configurations"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
 	identityData "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
 	identityModel "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/middleware"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/config/environment"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http"
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/middleware"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/redis"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/server"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/swagger"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/server"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/swagger"
 	"gorm.io/gorm"
 
 	"go.uber.org/fx"
@@ -39,13 +38,12 @@ func main() {
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
 				permissions.NewPermissionChecker,
-				identityData.NewUserManager,
 			),
 			fx.Invoke(server.RunServers),
 			fx.Invoke(redis.RegisterRedisServer),
 			fx.Invoke(middleware.ConfigMiddlewares),
 			fx.Invoke(swagger.ConfigSwagger),
-			fx.Invoke(func(gorm *gorm.DB, userManager data.IUserManager) error {
+			fx.Invoke(func(gorm *gorm.DB) error {
 				err := database.Migrate(gorm,
 					&identityModel.Role{},
 					&identityModel.User{},
@@ -55,7 +53,7 @@ func main() {
 				if err != nil {
 					return err
 				}
-				return identityData.DataSeeder(gorm, userManager)
+				return identityData.DataSeeder(gorm)
 			}),
 			fx.Invoke(identityConfiguration.ConfigEndpoints),
 		),

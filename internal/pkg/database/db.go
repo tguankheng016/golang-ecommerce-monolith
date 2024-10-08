@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	appConsts "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/constants"
 	"github.com/uptrace/bun/driver/pgdriver"
 	gorm_postgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -80,4 +82,13 @@ func Migrate(gorm *gorm.DB, types ...interface{}) error {
 		}
 	}
 	return nil
+}
+
+func RetrieveTxContext(c echo.Context) (*gorm.DB, error) {
+	tx, ok := c.Request().Context().Value(appConsts.TxKey(appConsts.DbContextKey)).(*gorm.DB)
+	if !ok {
+		return nil, errors.New("Transaction not found in context")
+	}
+
+	return tx, nil
 }

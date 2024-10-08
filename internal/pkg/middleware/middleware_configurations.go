@@ -5,9 +5,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
+	"gorm.io/gorm"
 )
 
-func ConfigMiddlewares(e *echo.Echo) {
+func ConfigMiddlewares(e *echo.Echo, db *gorm.DB) {
 	e.HideBanner = false
 
 	e.Use(middleware.Logger())
@@ -20,4 +22,5 @@ func ConfigMiddlewares(e *echo.Echo) {
 	}))
 
 	e.Use(middleware.BodyLimit("2M"))
+	e.Use(middlewares.TransactionalContextMiddleware(db))
 }

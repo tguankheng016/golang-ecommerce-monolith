@@ -6,10 +6,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/security"
-	"gorm.io/gorm"
 )
 
 type AuthenticateRequest struct {
@@ -24,9 +24,9 @@ type AuthenticateResult struct {
 	RefreshTokenExpireInSeconds int    `json:"refreshTokenExpireInSeconds"`
 } // @name AuthenticateResult
 
-func MapRoute(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
 	group := echo.Group("/api/v1/accounts/authenticate")
-	group.POST("", authenticate(db, jwtTokenGenerator, log, ctx))
+	group.POST("", authenticate(jwtTokenGenerator, log, ctx))
 }
 
 // Authenticate
@@ -39,7 +39,7 @@ func MapRoute(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.
 // @Success 200 {object} AuthenticateResult
 // @Security ApiKeyAuth
 // @Router /api/v1/accounts/authenticate [post]
-func authenticate(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func authenticate(jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		request := &AuthenticateRequest{}
 
@@ -47,10 +47,13 @@ func authenticate(db *gorm.DB, jwtTokenGenerator jwt.IJwtTokenGenerator, log log
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		var user models.User
-
-		err := db.Where("user_name = ? OR email = ?", request.UsernameOrEmailAddress, request.UsernameOrEmailAddress).First(&user).Error
+		tx, err := database.RetrieveTxContext(c)
 		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+
+		var user models.User
+		if err := tx.Where("user_name = ? OR email = ?", request.UsernameOrEmailAddress, request.UsernameOrEmailAddress).First(&user).Error; err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 

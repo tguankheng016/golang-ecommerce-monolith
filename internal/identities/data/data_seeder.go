@@ -11,12 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func DataSeeder(gorm *gorm.DB, userManager IUserManager) error {
+func DataSeeder(gorm *gorm.DB) error {
 	if err := seedRole(gorm); err != nil {
 		return err
 	}
 
-	if err := seedUser(gorm, userManager); err != nil {
+	if err := seedUser(gorm); err != nil {
 		return err
 	}
 
@@ -38,8 +38,10 @@ func seedRole(gorm *gorm.DB) error {
 	return nil
 }
 
-func seedUser(gorm *gorm.DB, userManager IUserManager) error {
+func seedUser(gorm *gorm.DB) error {
 	if (gorm.Find(&models.User{}).RowsAffected <= 0) {
+		userManager := NewUserManager(gorm)
+
 		pass := "123qwe"
 
 		adminUser := &models.User{

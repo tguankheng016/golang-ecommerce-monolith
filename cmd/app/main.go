@@ -4,7 +4,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/config"
 	identityConfiguration "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/configurations"
 	identityData "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
-	identityModel "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/config/environment"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http"
@@ -43,17 +42,11 @@ func main() {
 			fx.Invoke(redis.RegisterRedisServer),
 			fx.Invoke(middleware.ConfigMiddlewares),
 			fx.Invoke(swagger.ConfigSwagger),
-			fx.Invoke(func(gorm *gorm.DB) error {
-				err := database.Migrate(gorm,
-					&identityModel.Role{},
-					&identityModel.User{},
-					&identityModel.UserToken{},
-					&identityModel.UserRolePermission{},
-				)
-				if err != nil {
+			fx.Invoke(func(db *gorm.DB) error {
+				if err := database.RunGooseMigration(db); err != nil {
 					return err
 				}
-				return identityData.DataSeeder(gorm)
+				return identityData.DataSeeder(db)
 			}),
 			fx.Invoke(identityConfiguration.ConfigEndpoints),
 		),

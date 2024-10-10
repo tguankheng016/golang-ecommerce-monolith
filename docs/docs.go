@@ -94,6 +94,42 @@ const docTemplate = `{
             }
         },
         "/api/v1/user": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update user",
+                "parameters": [
+                    {
+                        "description": "EditUserDto",
+                        "name": "EditUserDto",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/EditUserDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserDto"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -127,6 +163,75 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/UserDto"
                         }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/{userId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get user by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get user by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Id",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GetUserByIdResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Id",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -175,7 +280,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/GetUsersResponseDto"
+                            "$ref": "#/definitions/GetUsersResult"
                         }
                     }
                 }
@@ -185,6 +290,10 @@ const docTemplate = `{
     "definitions": {
         "AuthenticateRequest": {
             "type": "object",
+            "required": [
+                "password",
+                "usernameOrEmailAddress"
+            ],
             "properties": {
                 "password": {
                     "type": "string"
@@ -211,20 +320,31 @@ const docTemplate = `{
                 }
             }
         },
-        "CreateUserDto": {
+        "CreateOrEditUserDto": {
             "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "userName"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256
                 },
                 "firstName": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
                 },
                 "id": {
                     "type": "integer"
                 },
                 "lastName": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
                 },
                 "password": {
                     "type": "string"
@@ -236,11 +356,105 @@ const docTemplate = `{
                     }
                 },
                 "userName": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 8
                 }
             }
         },
-        "GetUsersResponseDto": {
+        "CreateUserDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "userName"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 256
+                },
+                "firstName": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lastName": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string"
+                },
+                "roleIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "userName": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 8
+                }
+            }
+        },
+        "EditUserDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "userName"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 256
+                },
+                "firstName": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lastName": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string"
+                },
+                "roleIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "userName": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 8
+                }
+            }
+        },
+        "GetUserByIdResult": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/CreateOrEditUserDto"
+                }
+            }
+        },
+        "GetUsersResult": {
             "type": "object",
             "properties": {
                 "items": {
@@ -256,9 +470,13 @@ const docTemplate = `{
         },
         "RefreshTokenRequest": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 10
                 }
             }
         },

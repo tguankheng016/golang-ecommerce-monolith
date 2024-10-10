@@ -17,20 +17,21 @@ import (
 
 func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker) {
 	group := echo.Group("/api/v1/user")
-	group.POST("", createUser(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsersCreate))
+	group.PUT("", updateUser(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsersEdit))
 }
 
-// CreateUser
+// UpdateUser
 // @Tags Users
-// @Summary Create new user
-// @Description Create new user
+// @Summary Update user
+// @Description Update user
 // @Accept json
 // @Produce json
-// @Param CreateUserDto body CreateUserDto false "CreateUserDto"
+// @Param EditUserDto body EditUserDto false "EditUserDto"
+// @Validate(user) // Add this annotation to indicate that the user data is being validated
 // @Success 200 {object} UserDto
 // @Security ApiKeyAuth
-// @Router /api/v1/user [post]
-func createUser(validator *validator.Validate) echo.HandlerFunc {
+// @Router /api/v1/user [put]
+func updateUser(validator *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -41,20 +42,28 @@ func createUser(validator *validator.Validate) echo.HandlerFunc {
 
 		userManager := data.NewUserManager(tx)
 
-		var createUserDto dtos.CreateUserDto
+		var editUserDto dtos.EditUserDto
 
-		if err := c.Bind(&createUserDto); err != nil {
+		if err := c.Bind(&editUserDto); err != nil {
 			return c.JSON(http.StatusBadRequest, err)
 		}
 
-		if err := validator.StructCtx(ctx, createUserDto); err != nil {
+		if err := validator.StructCtx(ctx, editUserDto); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		var user models.User
-		copier.Copy(&user, &createUserDto)
+		if err := tx.First(&user, editUserDto.Id).Error; err != nil {
+			return echo.NewHTTPError(http.StatusNotFound, err)
+		}
 
-		if err := userManager.CreateUser(&user, createUserDto.Password); err != nil {
+		copier.Copy(&user, &editUserDto)
+
+		if err := userManager.UpdateUser(&user, editUserDto.Password); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+
+		if err := userManager.UpdateUserRoles(&user, editUserDto.RoleIds); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 

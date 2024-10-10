@@ -1,9 +1,9 @@
 package endpoints
 
 import (
-	"context"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
@@ -11,22 +11,21 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-type GetUsersRequestDto struct {
+type GetUsersRequest struct {
 	*pagination.PageRequest
 }
 
-type GetUsersResponseDto struct {
+type GetUsersResult struct {
 	*pagination.PageResultDto[dtos.UserDto]
-} // @name GetUsersResponseDto
+} // @name GetUsersResult
 
-func MapRoute(jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker) {
 	group := echo.Group("/api/v1/users")
-	group.GET("", getAllUsers(log, ctx), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
+	group.GET("", getAllUsers(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
 }
 
 // GetAllUsers
@@ -35,13 +34,15 @@ func MapRoute(jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker
 // @Description Get all users
 // @Accept json
 // @Produce json
-// @Param GetUsersRequestDto query GetUsersRequestDto false "GetUsersRequestDto"
-// @Success 200 {object} GetUsersResponseDto
+// @Param GetUsersRequest query GetUsersRequest false "GetUsersRequest"
+// @Success 200 {object} GetUsersResult
 // @Security ApiKeyAuth
 // @Router /api/v1/users [get]
-func getAllUsers(log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func getAllUsers(validator *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		tx, err := database.RetrieveTxContext(c)
+		ctx := c.Request().Context()
+
+		tx, err := database.RetrieveTxCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -49,8 +50,11 @@ func getAllUsers(log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 		var users []models.User
 
 		pageRequest, err := pagination.GetPageRequestFromCtx(c)
-
 		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+
+		if err := validator.StructCtx(ctx, pageRequest); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
@@ -60,7 +64,7 @@ func getAllUsers(log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		userPageRequest := &GetUsersRequestDto{PageRequest: pageRequest}
+		userPageRequest := &GetUsersRequest{PageRequest: pageRequest}
 
 		query := tx
 		countQuery := tx.Model(&models.User{})
@@ -86,19 +90,13 @@ func getAllUsers(log logger.ILogger, ctx context.Context) echo.HandlerFunc {
 		}
 
 		if err := query.Find(&users).Error; err != nil {
-			log.Warnf("GetUsers", err)
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		var userDtos []dtos.UserDto
 		copier.Copy(&userDtos, &users)
 
-		if err != nil {
-			log.Warnf("BindUsers", err)
-			return echo.NewHTTPError(http.StatusBadRequest, err)
-		}
-
-		result := &GetUsersResponseDto{
+		result := &GetUsersResult{
 			pagination.NewPageResultDto(userDtos, count),
 		}
 

@@ -84,8 +84,8 @@ func Migrate(gorm *gorm.DB, types ...interface{}) error {
 	return nil
 }
 
-func RetrieveTxContext(c echo.Context) (*gorm.DB, error) {
-	tx, ok := c.Request().Context().Value(appConsts.TxKey(appConsts.DbContextKey)).(*gorm.DB)
+func RetrieveTxCtx(c echo.Context) (*gorm.DB, error) {
+	tx, ok := c.Request().Context().Value(appConsts.CtxKey(appConsts.DbContextKey)).(*gorm.DB)
 	if !ok {
 		return nil, errors.New("Transaction not found in context")
 	}

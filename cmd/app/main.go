@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/tguankheng016/golang-ecommerce-monolith/config"
 	identityConfiguration "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/configurations"
 	identityData "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
@@ -37,6 +38,7 @@ func main() {
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
 				permissions.NewPermissionChecker,
+				validator.New,
 			),
 			fx.Invoke(server.RunServers),
 			fx.Invoke(redis.RegisterRedisServer),

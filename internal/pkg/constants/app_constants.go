@@ -8,7 +8,7 @@ const (
 	TokenValidityKey        = "token_validity_key"
 	RefreshTokenValidityKey = "refresh_token_validity_key"
 	SecurityStampKey        = "Identity.SecurityStamp"
-	DbContextKey            = "DbContext.Tx"
+	DbContextKey            = "Ctx.DbContext.Tx"
 )
 
-type TxKey string
+type CtxKey string

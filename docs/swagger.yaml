@@ -5,6 +5,9 @@ definitions:
         type: string
       usernameOrEmailAddress:
         type: string
+    required:
+    - password
+    - usernameOrEmailAddress
     type: object
   AuthenticateResult:
     properties:
@@ -17,15 +20,20 @@ definitions:
       refreshTokenExpireInSeconds:
         type: integer
     type: object
-  CreateUserDto:
+  CreateOrEditUserDto:
     properties:
       email:
+        maxLength: 256
         type: string
       firstName:
+        maxLength: 64
+        minLength: 3
         type: string
       id:
         type: integer
       lastName:
+        maxLength: 64
+        minLength: 3
         type: string
       password:
         type: string
@@ -34,9 +42,83 @@ definitions:
           type: integer
         type: array
       userName:
+        maxLength: 256
+        minLength: 8
         type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - userName
     type: object
-  GetUsersResponseDto:
+  CreateUserDto:
+    properties:
+      email:
+        maxLength: 256
+        type: string
+      firstName:
+        maxLength: 64
+        minLength: 3
+        type: string
+      id:
+        type: integer
+      lastName:
+        maxLength: 64
+        minLength: 3
+        type: string
+      password:
+        type: string
+      roleIds:
+        items:
+          type: integer
+        type: array
+      userName:
+        maxLength: 256
+        minLength: 8
+        type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - userName
+    type: object
+  EditUserDto:
+    properties:
+      email:
+        maxLength: 256
+        type: string
+      firstName:
+        maxLength: 64
+        minLength: 3
+        type: string
+      id:
+        type: integer
+      lastName:
+        maxLength: 64
+        minLength: 3
+        type: string
+      password:
+        type: string
+      roleIds:
+        items:
+          type: integer
+        type: array
+      userName:
+        maxLength: 256
+        minLength: 8
+        type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - userName
+    type: object
+  GetUserByIdResult:
+    properties:
+      user:
+        $ref: '#/definitions/CreateOrEditUserDto'
+    type: object
+  GetUsersResult:
     properties:
       items:
         items:
@@ -48,7 +130,10 @@ definitions:
   RefreshTokenRequest:
     properties:
       token:
+        minLength: 10
         type: string
+    required:
+    - token
     type: object
   RefreshTokenResult:
     properties:
@@ -144,6 +229,71 @@ paths:
       summary: Create new user
       tags:
       - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user
+      parameters:
+      - description: EditUserDto
+        in: body
+        name: EditUserDto
+        schema:
+          $ref: '#/definitions/EditUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserDto'
+      security:
+      - ApiKeyAuth: []
+      summary: Update user
+      tags:
+      - Users
+  /api/v1/user/{userId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete user
+      parameters:
+      - description: User Id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Get user by id
+      parameters:
+      - description: User Id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetUserByIdResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user by id
+      tags:
+      - Users
   /api/v1/users:
     get:
       consumes:
@@ -168,7 +318,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/GetUsersResponseDto'
+            $ref: '#/definitions/GetUsersResult'
       security:
       - ApiKeyAuth: []
       summary: Get all users

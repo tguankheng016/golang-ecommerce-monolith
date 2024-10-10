@@ -1,19 +1,18 @@
 package endpoints
 
 import (
-	"context"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	appConstants "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/constants"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 )
 
 type RefreshTokenRequest struct {
-	Token string `json:"token"`
+	Token string `json:"token" validate:"min=10,required"`
 } // @name RefreshTokenRequest
 
 type RefreshTokenResult struct {
@@ -21,9 +20,9 @@ type RefreshTokenResult struct {
 	ExpireInSeconds int    `json:"expireInSeconds"`
 } // @name RefreshTokenResult
 
-func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator) {
 	group := echo.Group("/api/v1/accounts/refresh-token")
-	group.POST("", refreshToken(jwtTokenGenerator, jwtTokenValidator, log, ctx))
+	group.POST("", refreshToken(validator, jwtTokenGenerator, jwtTokenValidator))
 }
 
 // RefreshToken
@@ -36,15 +35,21 @@ func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJ
 // @Success 200 {object} RefreshTokenResult
 // @Security ApiKeyAuth
 // @Router /api/v1/accounts/refresh-token [post]
-func refreshToken(jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func refreshToken(validator *validator.Validate, jwtTokenGenerator jwt.IJwtTokenGenerator, jwtTokenValidator jwt.IJwtTokenValidator) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
 		request := &RefreshTokenRequest{}
 
 		if err := c.Bind(request); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxContext(c)
+		if err := validator.StructCtx(ctx, request); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+
+		tx, err := database.RetrieveTxCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

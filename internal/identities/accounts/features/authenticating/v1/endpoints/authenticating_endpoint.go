@@ -1,20 +1,19 @@
 package endpoints
 
 import (
-	"context"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/security"
 )
 
 type AuthenticateRequest struct {
-	UsernameOrEmailAddress string `json:"usernameOrEmailAddress"`
-	Password               string `json:"password"`
+	UsernameOrEmailAddress string `json:"usernameOrEmailAddress" validate:"required"`
+	Password               string `json:"password" validate:"required"`
 } // @name AuthenticateRequest
 
 type AuthenticateResult struct {
@@ -24,9 +23,9 @@ type AuthenticateResult struct {
 	RefreshTokenExpireInSeconds int    `json:"refreshTokenExpireInSeconds"`
 } // @name AuthenticateResult
 
-func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, echo *echo.Echo, ctx context.Context) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, jwtTokenGenerator jwt.IJwtTokenGenerator) {
 	group := echo.Group("/api/v1/accounts/authenticate")
-	group.POST("", authenticate(jwtTokenGenerator, log, ctx))
+	group.POST("", authenticate(validator, jwtTokenGenerator))
 }
 
 // Authenticate
@@ -39,15 +38,21 @@ func MapRoute(jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, echo
 // @Success 200 {object} AuthenticateResult
 // @Security ApiKeyAuth
 // @Router /api/v1/accounts/authenticate [post]
-func authenticate(jwtTokenGenerator jwt.IJwtTokenGenerator, log logger.ILogger, ctx context.Context) echo.HandlerFunc {
+func authenticate(validator *validator.Validate, jwtTokenGenerator jwt.IJwtTokenGenerator) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
 		request := &AuthenticateRequest{}
 
 		if err := c.Bind(request); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxContext(c)
+		if err := validator.StructCtx(ctx, request); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+
+		tx, err := database.RetrieveTxCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

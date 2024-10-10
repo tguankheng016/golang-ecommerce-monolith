@@ -18,7 +18,7 @@ func TransactionalContextMiddleware(db *gorm.DB) echo.MiddlewareFunc {
 				return echo.NewHTTPError(http.StatusInternalServerError, tx.Error.Error())
 			}
 
-			ctx := context.WithValue(c.Request().Context(), constants.TxKey(constants.DbContextKey), tx)
+			ctx := context.WithValue(c.Request().Context(), constants.CtxKey(constants.DbContextKey), tx)
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			defer func() {

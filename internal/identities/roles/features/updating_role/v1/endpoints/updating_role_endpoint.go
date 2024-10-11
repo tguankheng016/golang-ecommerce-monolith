@@ -82,7 +82,7 @@ func updateRole(validator *validator.Validate, permissionManager permissions.IPe
 		// Prohibit
 		for _, oldPermission := range oldPermissions {
 			if !slices.Contains(editRoleDto.GrantedPermissions, oldPermission) {
-				if err := tx.Where("role_id = ? AND name = ?", role.Id, oldPermission).Delete(&models.UserRolePermission{}).Error; err != nil {
+				if err := tx.Where("role_id = ? AND name = ?", role.Id, oldPermission).Delete(&models.UserRolePermission{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 					return echo.NewHTTPError(http.StatusInternalServerError, err)
 				}
 
@@ -107,7 +107,7 @@ func updateRole(validator *validator.Validate, permissionManager permissions.IPe
 					}
 				} else if !rolePermissionToGrant.IsGranted {
 					if isAdmin {
-						if err := tx.Where("role_id = ? AND name = ?", role.Id, newPermission).Delete(&models.UserRolePermission{}).Error; err != nil {
+						if err := tx.Where("role_id = ? AND name = ?", role.Id, newPermission).Delete(&models.UserRolePermission{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 							return echo.NewHTTPError(http.StatusInternalServerError, err)
 						}
 					} else {
@@ -121,7 +121,10 @@ func updateRole(validator *validator.Validate, permissionManager permissions.IPe
 			}
 		}
 
-		permissionManager.RemoveRolePermissionCaches(ctx, role.Id)
+		// Commit because permission manager tx is different
+		tx.Commit()
+
+		permissionManager.SetRolePermissions(ctx, role.Id)
 
 		var roleDto dtos.RoleDto
 		if err := copier.Copy(&roleDto, &role); err != nil {

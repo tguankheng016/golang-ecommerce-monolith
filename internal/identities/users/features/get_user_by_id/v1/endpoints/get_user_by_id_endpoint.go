@@ -36,12 +36,7 @@ func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager per
 func getUserById() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var userId int64
-
-		err := echo.PathParamsBinder(c).
-			Int64("userId", &userId).
-			BindError()
-
-		if err != nil {
+		if err := echo.PathParamsBinder(c).Int64("userId", &userId).BindError(); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 

@@ -152,6 +152,26 @@ definitions:
     - lastName
     - userName
     type: object
+  GetAllPermissionResult:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/PermissionGroupDto'
+        type: array
+    type: object
+  GetCurrentSessionResult:
+    properties:
+      allPermissions:
+        additionalProperties:
+          type: boolean
+        type: object
+      grantedPermissions:
+        additionalProperties:
+          type: boolean
+        type: object
+      user:
+        $ref: '#/definitions/UserLoginInfoDto'
+    type: object
   GetRoleByIdResult:
     properties:
       role:
@@ -180,6 +200,24 @@ definitions:
       totalCount:
         type: integer
     type: object
+  PermissionDto:
+    properties:
+      displayName:
+        type: string
+      isGranted:
+        type: boolean
+      name:
+        type: string
+    type: object
+  PermissionGroupDto:
+    properties:
+      groupName:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/PermissionDto'
+        type: array
+    type: object
   RefreshTokenRequest:
     properties:
       token:
@@ -202,6 +240,13 @@ definitions:
       name:
         type: string
     type: object
+  UpdateUserPermissionDto:
+    properties:
+      grantedPermissions:
+        items:
+          type: string
+        type: array
+    type: object
   UserDto:
     properties:
       email:
@@ -215,9 +260,46 @@ definitions:
       userName:
         type: string
     type: object
+  UserLoginInfoDto:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      userName:
+        type: string
+    type: object
+  UserPermissionsResult:
+    properties:
+      items:
+        items:
+          type: string
+        type: array
+    type: object
 info:
   contact: {}
 paths:
+  /api/v1/accounts/app-permissions:
+    get:
+      consumes:
+      - application/json
+      description: Get All App Permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetAllPermissionResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get All App Permissions
+      tags:
+      - Accounts
   /api/v1/accounts/authenticate:
     post:
       consumes:
@@ -240,6 +322,23 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Authenticate
+      tags:
+      - Accounts
+  /api/v1/accounts/current-session:
+    get:
+      consumes:
+      - application/json
+      description: Get Current User Session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetCurrentSessionResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Current User Session
       tags:
       - Accounts
   /api/v1/accounts/refresh-token:
@@ -485,6 +584,75 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get user by id
+      tags:
+      - Users
+  /api/v1/user/{userId}/permissions:
+    get:
+      consumes:
+      - application/json
+      description: Get user permissions
+      parameters:
+      - description: User Id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserPermissionsResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user permissions
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user permissions
+      parameters:
+      - description: User Id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: UpdateUserPermissionDto
+        in: body
+        name: UpdateUserPermissionDto
+        schema:
+          $ref: '#/definitions/UpdateUserPermissionDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update user permissions
+      tags:
+      - Users
+  /api/v1/user/{userId}/reset-permissions:
+    put:
+      consumes:
+      - application/json
+      description: Reset user permissions
+      parameters:
+      - description: User Id
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Reset user permissions
       tags:
       - Users
   /api/v1/users:

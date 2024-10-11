@@ -65,7 +65,9 @@ func (p *permissionManager) IsGranted(ctx context.Context, userId int64, permiss
 
 	var userPermissionCacheItem UserPermissionCacheItem
 	if err := gob.NewDecoder(bytes.NewBuffer([]byte(cachedUserPermissions))).Decode(&userPermissionCacheItem); err != nil {
-		p.logger.Error(err)
+		if err != redis.Nil {
+			p.logger.Error(err)
+		}
 	} else {
 		if _, ok := userPermissionCacheItem.Permissions[permissionName]; ok {
 			return true, nil

@@ -2,35 +2,35 @@ package endpoints
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/constants"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
+	"gorm.io/gorm"
 )
 
 func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
-	group := echo.Group("/api/v1/user/:userId")
-	group.DELETE("", deleteUser(), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersDelete))
+	group := echo.Group("/api/v1/user/:userId/reset-permissions")
+	group.PUT("", resetUserPermissions(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersChangePermissions))
 }
 
-// DeleteUser
+// ResetUserPermissions
 // @Tags Users
-// @Summary Delete user
-// @Description Delete user
+// @Summary Reset user permissions
+// @Description Reset user permissions
 // @Accept json
 // @Produce json
 // @Param userId path int true "User Id"
 // @Success 200
 // @Security ApiKeyAuth
-// @Router /api/v1/user/{userId} [delete]
-func deleteUser() echo.HandlerFunc {
+// @Router /api/v1/user/{userId}/reset-permissions [put]
+func resetUserPermissions(permissionManager permissions.IPermissionManager) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
 		var userId int64
 		if err := echo.PathParamsBinder(c).Int64("userId", &userId).BindError(); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
@@ -41,18 +41,15 @@ func deleteUser() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		var user models.User
-		if err := tx.First(&user, userId).Error; err != nil {
-			return echo.NewHTTPError(http.StatusNotFound, err)
-		}
-
-		if user.NormalizedUserName == strings.ToUpper(constants.DefaultAdminUsername) {
-			return echo.NewHTTPError(http.StatusBadRequest, errors.New("You cannot delete the default admin user"))
-		}
-
-		if err := tx.Delete(&user).Error; err != nil {
+		if err := tx.Model(&models.UserRolePermission{}).Where("user_id = ?", userId).Delete(&models.UserRolePermission{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
+
+		// Commit because permission manager tx is different
+		tx.Commit()
+
+		// Reset User Permissions
+		permissionManager.SetUserPermissions(ctx, userId)
 
 		return c.NoContent(http.StatusOK)
 	}

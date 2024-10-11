@@ -11,7 +11,17 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 )
 
+// ValidateToken validates the JWT token in the Authorization header. If the token is invalid, it returns a 401 Unauthorized response.
 func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
+	return validateToken(validator, false)
+}
+
+// TryValidateToken validates the JWT token in the Authorization header but does not throw an error if the token is invalid.
+func TryValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
+	return validateToken(validator, true)
+}
+
+func validateToken(validator jwt.IJwtTokenValidator, canSkipError bool) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Ignore check authentication in test
@@ -23,7 +33,11 @@ func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
 			// Parse and verify jwt access token
 			auth, ok := bearerAuth(c.Request())
 			if !ok {
-				return echo.NewHTTPError(http.StatusUnauthorized, errors.New("Invalid access token"))
+				if !canSkipError {
+					return echo.NewHTTPError(http.StatusUnauthorized, errors.New("Invalid access token"))
+				} else {
+					return next(c)
+				}
 			}
 
 			ctx := c.Request().Context()
@@ -31,7 +45,11 @@ func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
 			// Validate jwt access token
 			userId, claims, err := validator.ValidateToken(ctx, auth, jwt.AccessToken)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err)
+				if !canSkipError {
+					return echo.NewHTTPError(http.StatusUnauthorized, err)
+				} else {
+					return next(c)
+				}
 			}
 
 			echoServer.SetCurrentUser(c, userId)

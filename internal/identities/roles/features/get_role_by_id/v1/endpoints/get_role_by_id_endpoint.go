@@ -38,12 +38,7 @@ func getRoleById(permissionManager permissions.IPermissionManager) echo.HandlerF
 		ctx := c.Request().Context()
 
 		var roleId int64
-
-		err := echo.PathParamsBinder(c).
-			Int64("roleId", &roleId).
-			BindError()
-
-		if err != nil {
+		if err := echo.PathParamsBinder(c).Int64("roleId", &roleId).BindError(); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 

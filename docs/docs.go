@@ -93,6 +93,224 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/accounts/sign-out": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Sign out",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Sign out",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/v1/role": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Update role",
+                "parameters": [
+                    {
+                        "description": "EditRoleDto",
+                        "name": "EditRoleDto",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/EditRoleDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RoleDto"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create new role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Create new role",
+                "parameters": [
+                    {
+                        "description": "CreateRoleDto",
+                        "name": "CreateRoleDto",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/CreateRoleDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/RoleDto"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/role/{roleId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get role by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Get role by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Role Id",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GetRoleByIdResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Delete role",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Role Id",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/v1/roles": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all roles",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Get all roles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "filters",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "maxResultCount",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "skipCount",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "sorting",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GetRolesResult"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/user": {
             "put": {
                 "security": [
@@ -320,6 +538,26 @@ const docTemplate = `{
                 }
             }
         },
+        "CreateOrEditRoleDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "grantedPermissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "CreateOrEditUserDto": {
             "type": "object",
             "required": [
@@ -359,6 +597,26 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 256,
                     "minLength": 8
+                }
+            }
+        },
+        "CreateRoleDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "grantedPermissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -404,6 +662,26 @@ const docTemplate = `{
                 }
             }
         },
+        "EditRoleDto": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "grantedPermissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "EditUserDto": {
             "type": "object",
             "required": [
@@ -443,6 +721,28 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 256,
                     "minLength": 8
+                }
+            }
+        },
+        "GetRoleByIdResult": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "$ref": "#/definitions/CreateOrEditRoleDto"
+                }
+            }
+        },
+        "GetRolesResult": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RoleDto"
+                    }
+                },
+                "totalCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -488,6 +788,17 @@ const docTemplate = `{
                 },
                 "expireInSeconds": {
                     "type": "integer"
+                }
+            }
+        },
+        "RoleDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

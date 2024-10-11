@@ -15,9 +15,9 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user")
-	group.PUT("", updateUser(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsersEdit))
+	group.PUT("", updateUser(validator, permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersEdit))
 }
 
 // UpdateUser
@@ -27,20 +27,12 @@ func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenV
 // @Accept json
 // @Produce json
 // @Param EditUserDto body EditUserDto false "EditUserDto"
-// @Validate(user) // Add this annotation to indicate that the user data is being validated
 // @Success 200 {object} UserDto
 // @Security ApiKeyAuth
 // @Router /api/v1/user [put]
-func updateUser(validator *validator.Validate) echo.HandlerFunc {
+func updateUser(validator *validator.Validate, permissionManager permissions.IPermissionManager) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
-
-		tx, err := database.RetrieveTxCtx(c)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err)
-		}
-
-		userManager := data.NewUserManager(tx)
 
 		var editUserDto dtos.EditUserDto
 
@@ -52,12 +44,21 @@ func updateUser(validator *validator.Validate) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
+		tx, err := database.RetrieveTxCtx(c)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+
+		userManager := data.NewUserManager(tx)
+
 		var user models.User
 		if err := tx.First(&user, editUserDto.Id).Error; err != nil {
 			return echo.NewHTTPError(http.StatusNotFound, err)
 		}
 
-		copier.Copy(&user, &editUserDto)
+		if err := copier.Copy(&user, &editUserDto); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
 
 		if err := userManager.UpdateUser(&user, editUserDto.Password); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
@@ -67,8 +68,12 @@ func updateUser(validator *validator.Validate) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
+		permissionManager.RemoveUserRoleCaches(ctx, user.Id)
+
 		var userDto dtos.UserDto
-		copier.Copy(&userDto, &user)
+		if err := copier.Copy(&userDto, &user); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
 
 		return c.JSON(http.StatusOK, userDto)
 	}

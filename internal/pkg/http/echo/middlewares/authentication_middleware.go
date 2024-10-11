@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 )
 
@@ -22,16 +23,19 @@ func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
 			// Parse and verify jwt access token
 			auth, ok := bearerAuth(c.Request())
 			if !ok {
-				return echo.NewHTTPError(http.StatusUnauthorized, errors.New("parse token error"))
+				return echo.NewHTTPError(http.StatusUnauthorized, errors.New("Invalid access token"))
 			}
 
+			ctx := c.Request().Context()
+
 			// Validate jwt access token
-			userId, _, err := validator.ValidateToken(auth, jwt.AccessToken)
+			userId, claims, err := validator.ValidateToken(ctx, auth, jwt.AccessToken)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, err)
 			}
 
-			c.Set("userId", userId)
+			echoServer.SetCurrentUser(c, userId)
+			echoServer.SetCurrentUserClaims(c, claims)
 
 			return next(c)
 		}

@@ -15,9 +15,9 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user")
-	group.POST("", createUser(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsersCreate))
+	group.POST("", createUser(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersCreate))
 }
 
 // CreateUser
@@ -52,14 +52,18 @@ func createUser(validator *validator.Validate) echo.HandlerFunc {
 		}
 
 		var user models.User
-		copier.Copy(&user, &createUserDto)
+		if err := copier.Copy(&user, &createUserDto); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
 
 		if err := userManager.CreateUser(&user, createUserDto.Password); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
 		var userDto dtos.UserDto
-		copier.Copy(&userDto, &user)
+		if err := copier.Copy(&userDto, &user); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
 
 		return c.JSON(http.StatusOK, userDto)
 	}

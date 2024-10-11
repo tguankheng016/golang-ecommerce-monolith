@@ -8,6 +8,7 @@ import (
 
 	"encoding/gob"
 
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	identityConsts "github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/constants"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
@@ -15,11 +16,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type IPermissionChecker interface {
-	IsGranted(userId int64, permissionName string) (bool, error)
+type IPermissionManager interface {
+	IsGranted(ctx context.Context, userId int64, permissionName string) (bool, error)
+	SetUserPermissions(ctx context.Context, userId int64) (map[string]string, error)
+	SetRolePermissions(ctx context.Context, roleId int64) (map[string]string, error)
+	RemoveUserRoleCaches(ctx context.Context, userId int64)
+	RemoveUserPermissionCaches(ctx context.Context, userId int64)
+	RemoveRolePermissionCaches(cctx context.Context, roleId int64)
 }
 
-type permissionChecker struct {
+type permissionManager struct {
 	db     *gorm.DB
 	client *redis.Client
 	logger logger.ILogger
@@ -29,22 +35,22 @@ const (
 	DefaultCacheExpiration = 1 * time.Hour
 )
 
-func NewPermissionChecker(db *gorm.DB, client *redis.Client, logger logger.ILogger) IPermissionChecker {
-	return &permissionChecker{
+func NewPermissionManager(db *gorm.DB, client *redis.Client, logger logger.ILogger) IPermissionManager {
+	return &permissionManager{
 		db:     db,
 		client: client,
 		logger: logger,
 	}
 }
 
-func (p *permissionChecker) IsGranted(userId int64, permissionName string) (bool, error) {
+func (p *permissionManager) IsGranted(ctx context.Context, userId int64, permissionName string) (bool, error) {
 	// Check from cache first
-	cachedUserRoles, err := p.client.Get(context.Background(), GenerateUserRoleCacheKey(userId)).Result()
+	cachedUserRoles, err := p.client.Get(ctx, GenerateUserRoleCacheKey(userId)).Result()
 	if err != nil {
 		if err != redis.Nil {
 			p.logger.Error(err)
 		}
-		return p.isGrantedFromDb(userId, permissionName)
+		return p.isGrantedFromDb(ctx, userId, permissionName)
 	}
 
 	var userRoleCacheItem UserRoleCacheItem
@@ -52,7 +58,7 @@ func (p *permissionChecker) IsGranted(userId int64, permissionName string) (bool
 		return false, err
 	}
 
-	cachedUserPermissions, err := p.client.Get(context.Background(), GenerateUserPermissionCacheKey(userId)).Result()
+	cachedUserPermissions, err := p.client.Get(ctx, GenerateUserPermissionCacheKey(userId)).Result()
 	if err != nil && err != redis.Nil {
 		p.logger.Error(err)
 	}
@@ -71,7 +77,7 @@ func (p *permissionChecker) IsGranted(userId int64, permissionName string) (bool
 	}
 
 	for _, r := range userRoleCacheItem.RoleIds {
-		cachedRolePermissions, err := p.client.Get(context.Background(), GenerateRolePermissionCacheKey(r)).Result()
+		cachedRolePermissions, err := p.client.Get(ctx, GenerateRolePermissionCacheKey(r)).Result()
 		if err != nil {
 			if err != redis.Nil {
 				p.logger.Error(err)
@@ -93,8 +99,8 @@ func (p *permissionChecker) IsGranted(userId int64, permissionName string) (bool
 	return false, nil
 }
 
-func (p *permissionChecker) isGrantedFromDb(userId int64, permissionName string) (bool, error) {
-	grantedPermissions, err := p.setUserPermissions(userId)
+func (p *permissionManager) isGrantedFromDb(ctx context.Context, userId int64, permissionName string) (bool, error) {
+	grantedPermissions, err := p.SetUserPermissions(ctx, userId)
 	if err != nil {
 		return false, err
 	}
@@ -104,7 +110,7 @@ func (p *permissionChecker) isGrantedFromDb(userId int64, permissionName string)
 	return ok, nil
 }
 
-func (p *permissionChecker) setUserPermissions(userId int64) (map[string]string, error) {
+func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64) (map[string]string, error) {
 	var user models.User
 	if err := p.db.Model(&models.User{}).Preload("Roles").First(&user, userId).Error; err != nil {
 		return nil, err
@@ -120,7 +126,7 @@ func (p *permissionChecker) setUserPermissions(userId int64) (map[string]string,
 	if err != nil {
 		return nil, err
 	}
-	if err := p.client.Set(context.Background(), GenerateUserRoleCacheKey(userId), userRoleCacheItem, DefaultCacheExpiration).Err(); err != nil {
+	if err := p.client.Set(ctx, GenerateUserRoleCacheKey(userId), userRoleCacheItem, DefaultCacheExpiration).Err(); err != nil {
 		// Dont return just log
 		p.logger.Error(err)
 	}
@@ -147,13 +153,13 @@ func (p *permissionChecker) setUserPermissions(userId int64) (map[string]string,
 	if err != nil {
 		return nil, err
 	}
-	if err := p.client.Set(context.Background(), GenerateUserPermissionCacheKey(userId), userPermissionCacheItem, DefaultCacheExpiration).Err(); err != nil {
+	if err := p.client.Set(ctx, GenerateUserPermissionCacheKey(userId), userPermissionCacheItem, DefaultCacheExpiration).Err(); err != nil {
 		// Dont return just log
 		p.logger.Error(err)
 	}
 
 	for _, role := range user.Roles {
-		rolePermissions, err := p.setRolePermissions(role.Id)
+		rolePermissions, err := p.SetRolePermissions(ctx, role.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +177,7 @@ func (p *permissionChecker) setUserPermissions(userId int64) (map[string]string,
 	return grantedPermissions, nil
 }
 
-func (p *permissionChecker) setRolePermissions(roleId int64) (map[string]string, error) {
+func (p *permissionManager) SetRolePermissions(ctx context.Context, roleId int64) (map[string]string, error) {
 	var role models.Role
 	if err := p.db.Model(&models.Role{}).First(&role, roleId).Error; err != nil {
 		return nil, err
@@ -208,7 +214,7 @@ func (p *permissionChecker) setRolePermissions(roleId int64) (map[string]string,
 		if err != nil {
 			return nil, err
 		}
-		if err := p.client.Set(context.Background(), GenerateRolePermissionCacheKey(roleId), rolePermissionCacheItem, DefaultCacheExpiration).Err(); err != nil {
+		if err := p.client.Set(ctx, GenerateRolePermissionCacheKey(roleId), rolePermissionCacheItem, DefaultCacheExpiration).Err(); err != nil {
 			// Dont return just log
 			p.logger.Error(err)
 		}
@@ -224,6 +230,35 @@ func (p *permissionChecker) setRolePermissions(roleId int64) (map[string]string,
 
 		return grantedPermissions, nil
 	}
+}
+
+func (p *permissionManager) RemoveUserRoleCaches(ctx context.Context, userId int64) {
+	if err := p.client.Del(ctx, GenerateUserRoleCacheKey(userId)).Err(); err != nil {
+		p.logger.Error(err)
+	}
+}
+
+func (p *permissionManager) RemoveUserPermissionCaches(ctx context.Context, userId int64) {
+	if err := p.client.Del(ctx, GenerateUserPermissionCacheKey(userId)).Err(); err != nil {
+		p.logger.Error(err)
+	}
+}
+
+func (p *permissionManager) RemoveRolePermissionCaches(cctx context.Context, roleId int64) {
+	if err := p.client.Del(cctx, GenerateRolePermissionCacheKey(roleId)).Err(); err != nil {
+		p.logger.Error(err)
+	}
+}
+
+func ValidatePermissionName(grantedPermissions []string) error {
+	allPermissions := GetAppPermissions().Items
+	for _, permission := range grantedPermissions {
+		if _, ok := allPermissions[permission]; !ok {
+			return errors.New("invalid permission name")
+		}
+	}
+
+	return nil
 }
 
 func marshalCacheItem(obj interface{}) ([]byte, error) {

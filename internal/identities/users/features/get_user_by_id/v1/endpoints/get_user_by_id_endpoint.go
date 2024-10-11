@@ -18,9 +18,9 @@ type GetUserByIdResult struct {
 	User dtos.CreateOrEditUserDto
 } // @name GetUserByIdResult
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, checker permissions.IPermissionChecker) {
+func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user/:userId")
-	group.GET("", getUserById(), middlewares.ValidateToken(jwt), middlewares.Authorize(checker, permissions.PagesAdministrationUsers))
+	group.GET("", getUserById(), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsers))
 }
 
 // GetUserById
@@ -62,7 +62,9 @@ func getUserById() echo.HandlerFunc {
 				return echo.NewHTTPError(http.StatusNotFound, err)
 			}
 
-			copier.Copy(&userEditDto, &user)
+			if err := copier.Copy(&userEditDto, &user); err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err)
+			}
 
 			userManager := data.NewUserManager(tx)
 

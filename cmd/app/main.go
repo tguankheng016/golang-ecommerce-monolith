@@ -37,7 +37,7 @@ func main() {
 				echoServer.NewEchoServer,
 				jwt.NewJwtTokenGenerator,
 				jwt.NewJwtTokenValidator,
-				permissions.NewPermissionChecker,
+				permissions.NewPermissionManager,
 				validator.New,
 			),
 			fx.Invoke(server.RunServers),

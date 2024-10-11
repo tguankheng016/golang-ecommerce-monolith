@@ -54,7 +54,7 @@ func refreshToken(validator *validator.Validate, jwtTokenGenerator jwt.IJwtToken
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		userId, claims, err := jwtTokenValidator.ValidateToken(request.Token, jwt.RefreshToken)
+		userId, claims, err := jwtTokenValidator.ValidateToken(ctx, request.Token, jwt.RefreshToken)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, err)
 		}
@@ -66,7 +66,7 @@ func refreshToken(validator *validator.Validate, jwtTokenGenerator jwt.IJwtToken
 
 		refreshTokenKey := claims[appConstants.TokenValidityKey].(string)
 
-		accessToken, accessTokenSeconds, err := jwtTokenGenerator.GenerateAccessToken(&user, refreshTokenKey)
+		accessToken, accessTokenSeconds, err := jwtTokenGenerator.GenerateAccessToken(ctx, &user, refreshTokenKey)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}

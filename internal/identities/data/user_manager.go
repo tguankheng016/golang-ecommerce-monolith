@@ -1,12 +1,12 @@
 package data
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/core/helpers"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/security"
 	"gorm.io/gorm"
 )
@@ -15,6 +15,7 @@ type IUserManager interface {
 	CreateUser(user *models.User, password string) error
 	UpdateUser(user *models.User, password string) error
 	GetUserRoles(user *models.User) ([]int64, error)
+	GetUserIdsInRole(roleId int64) ([]int64, error)
 	UpdateUserRoles(user *models.User, roles []int64) error
 	AddToRoles(user *models.User, roles []int64) error
 	RemoveToRoles(user *models.User, roles []int64) error
@@ -91,6 +92,21 @@ func (u *userManager) GetUserRoles(user *models.User) ([]int64, error) {
 	return userRoleIds, nil
 }
 
+func (u *userManager) GetUserIdsInRole(roleId int64) ([]int64, error) {
+	userIds := make([]int64, 0)
+
+	if err := u.db.Model(&models.User{}).
+		Select("users.id").
+		Joins("join user_roles on user_roles.user_id = users.id").
+		Where("user_roles.role_id = ?", roleId).
+		Scan(&userIds).Error; err != nil {
+
+		return nil, err
+	}
+
+	return userIds, nil
+}
+
 func (u *userManager) UpdateUserRoles(user *models.User, roles []int64) error {
 	userRoleIds, err := u.GetUserRoles(user)
 	if err != nil {
@@ -99,14 +115,14 @@ func (u *userManager) UpdateUserRoles(user *models.User, roles []int64) error {
 
 	var roleIdsToAdd []int64
 	for _, roleId := range roles {
-		if !helpers.SliceContains(userRoleIds, roleId) {
+		if !slices.Contains(userRoleIds, roleId) {
 			roleIdsToAdd = append(roleIdsToAdd, roleId)
 		}
 	}
 
 	var roleIdsToRemove []int64
 	for _, userRoleId := range userRoleIds {
-		if !helpers.SliceContains(roles, userRoleId) {
+		if !slices.Contains(roles, userRoleId) {
 			roleIdsToRemove = append(roleIdsToRemove, userRoleId)
 		}
 	}

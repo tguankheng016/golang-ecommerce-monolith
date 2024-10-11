@@ -29,8 +29,9 @@ const (
 )
 
 type IJwtTokenGenerator interface {
-	GenerateAccessToken(user *models.User, refreshTokenKey string) (string, int, error)
-	GenerateRefreshToken(user *models.User) (string, string, int, error)
+	GenerateAccessToken(ctx context.Context, user *models.User, refreshTokenKey string) (string, int, error)
+	GenerateRefreshToken(ctx context.Context, user *models.User) (string, string, int, error)
+	RemoveUserTokens(ctx context.Context, userId int64, claims jwtGo.MapClaims) error
 }
 
 type jwtTokenGenerator struct {
@@ -53,8 +54,8 @@ func NewJwtTokenGenerator(db *gorm.DB, client *redis.Client, logger logger.ILogg
 	}
 }
 
-func (j *jwtTokenGenerator) GenerateAccessToken(user *models.User, refreshTokenKey string) (string, int, error) {
-	claims, err := j.createJwtClaims(user, AccessToken, refreshTokenKey)
+func (j *jwtTokenGenerator) GenerateAccessToken(ctx context.Context, user *models.User, refreshTokenKey string) (string, int, error) {
+	claims, err := j.createJwtClaims(ctx, user, AccessToken, refreshTokenKey)
 
 	if err != nil {
 		return "", 0, err
@@ -65,8 +66,8 @@ func (j *jwtTokenGenerator) GenerateAccessToken(user *models.User, refreshTokenK
 	return accessToken, int(AccessTokenExpirationTime.Seconds()), err
 }
 
-func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, string, int, error) {
-	claims, err := j.createJwtClaims(user, RefreshToken, "")
+func (j *jwtTokenGenerator) GenerateRefreshToken(ctx context.Context, user *models.User) (string, string, int, error) {
+	claims, err := j.createJwtClaims(ctx, user, RefreshToken, "")
 
 	if err != nil {
 		return "", "", 0, err
@@ -80,6 +81,26 @@ func (j *jwtTokenGenerator) GenerateRefreshToken(user *models.User) (string, str
 	return refreshToken, refreshTokenStr, int(RefreshTokenExpirationTime.Seconds()), err
 }
 
+func (j *jwtTokenGenerator) RemoveUserTokens(ctx context.Context, userId int64, claims jwtGo.MapClaims) error {
+	tokenKey, ok := claims[constants.TokenValidityKey]
+	if !ok {
+		return errors.New("Invalid token key")
+	}
+
+	if err := j.removeToken(ctx, userId, tokenKey.(string)); err != nil {
+		return err
+	}
+
+	refreshTokenKey, ok := claims[constants.RefreshTokenValidityKey]
+	if ok {
+		if err := j.removeToken(ctx, userId, refreshTokenKey.(string)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (j *jwtTokenGenerator) createToken(claims jwtGo.MapClaims) (string, error) {
 	token := jwtGo.NewWithClaims(jwtGo.SigningMethodHS256, claims)
 	token.Header["iss"] = j.issuer
@@ -88,7 +109,7 @@ func (j *jwtTokenGenerator) createToken(claims jwtGo.MapClaims) (string, error) 
 	return token.SignedString([]byte(j.secretKey))
 }
 
-func (j *jwtTokenGenerator) createJwtClaims(user *models.User, tokenType TokenType, refreshTokenKey string) (jwtGo.MapClaims, error) {
+func (j *jwtTokenGenerator) createJwtClaims(ctx context.Context, user *models.User, tokenType TokenType, refreshTokenKey string) (jwtGo.MapClaims, error) {
 	tokenValidityKey, err := uuid.NewV4()
 
 	if err != nil {
@@ -134,10 +155,23 @@ func (j *jwtTokenGenerator) createJwtClaims(user *models.User, tokenType TokenTy
 		return nil, errors.Wrap(err, "error when inserting user token into the database.")
 	}
 
-	if err := j.client.Set(context.Background(), generateTokenValidityCacheKey(user.Id, tokenValidityKey.String()), tokenValidityKey.String(), DefaultCacheExpiration).Err(); err != nil {
+	if err := j.client.Set(ctx, generateTokenValidityCacheKey(user.Id, tokenValidityKey.String()), tokenValidityKey.String(), DefaultCacheExpiration).Err(); err != nil {
 		// Dont return just log
 		j.logger.Error(err)
 	}
 
 	return claims, nil
+}
+
+func (j *jwtTokenGenerator) removeToken(ctx context.Context, userId int64, tokenKey string) error {
+	if err := j.db.Where("token_key = ? AND user_id = ?", tokenKey, userId).Delete(&models.UserToken{}).Error; err != nil {
+		return err
+	}
+
+	if err := j.client.Del(ctx, generateTokenValidityCacheKey(userId, tokenKey)).Err(); err != nil {
+		// Dont return just log
+		j.logger.Error(err)
+	}
+
+	return nil
 }

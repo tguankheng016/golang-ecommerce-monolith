@@ -16,7 +16,7 @@ import (
 )
 
 type IJwtTokenValidator interface {
-	ValidateToken(token string, tokenType TokenType) (int64, jwtGo.MapClaims, error)
+	ValidateToken(ctx context.Context, token string, tokenType TokenType) (int64, jwtGo.MapClaims, error)
 }
 
 type jwtTokenValidator struct {
@@ -43,7 +43,7 @@ func NewJwtTokenValidator(db *gorm.DB, client *redis.Client, logger logger.ILogg
 	}
 }
 
-func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenType) (int64, jwtGo.MapClaims, error) {
+func (j *jwtTokenValidator) ValidateToken(ctx context.Context, tokenString string, tokenType TokenType) (int64, jwtGo.MapClaims, error) {
 	token, err := jwtGo.ParseWithClaims(tokenString, jwtGo.MapClaims{}, func(token *jwtGo.Token) (interface{}, error) {
 		return []byte(j.secretKey), nil
 	})
@@ -85,11 +85,11 @@ func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenTyp
 			return 0, nil, err
 		}
 
-		if err := j.validateTokenWithSecurityStamp(userId, claims); err != nil {
+		if err := j.validateTokenWithSecurityStamp(ctx, userId, claims); err != nil {
 			return 0, nil, err
 		}
 
-		if err := j.validateTokenWithTokenKey(userId, claims); err != nil {
+		if err := j.validateTokenWithTokenKey(ctx, userId, claims); err != nil {
 			return 0, nil, err
 		}
 
@@ -99,7 +99,7 @@ func (j *jwtTokenValidator) ValidateToken(tokenString string, tokenType TokenTyp
 	return 0, nil, errors.New("Invalid token")
 }
 
-func (j *jwtTokenValidator) validateTokenWithSecurityStamp(userId int64, claims jwtGo.MapClaims) error {
+func (j *jwtTokenValidator) validateTokenWithSecurityStamp(ctx context.Context, userId int64, claims jwtGo.MapClaims) error {
 	securityStamp := claims[constants.SecurityStampKey]
 	invalidSecurityStampErr := errors.New("Invalid stamp")
 
@@ -107,10 +107,10 @@ func (j *jwtTokenValidator) validateTokenWithSecurityStamp(userId int64, claims 
 		return invalidSecurityStampErr
 	}
 
-	isValid := j.validateTokenWithSecurityStampFromCache(userId, securityStamp.(string))
+	isValid := j.validateTokenWithSecurityStampFromCache(ctx, userId, securityStamp.(string))
 
 	if !isValid {
-		isValid = j.validateTokenWithSecurityStampFromDb(userId, securityStamp.(string))
+		isValid = j.validateTokenWithSecurityStampFromDb(ctx, userId, securityStamp.(string))
 	}
 
 	if !isValid {
@@ -120,10 +120,10 @@ func (j *jwtTokenValidator) validateTokenWithSecurityStamp(userId int64, claims 
 	return nil
 }
 
-func (j *jwtTokenValidator) validateTokenWithSecurityStampFromCache(userId int64, securityStamp string) bool {
+func (j *jwtTokenValidator) validateTokenWithSecurityStampFromCache(ctx context.Context, userId int64, securityStamp string) bool {
 	cacheKey := generateStampCacheKey(userId)
 
-	cachedStamp, err := j.client.Get(context.Background(), cacheKey).Result()
+	cachedStamp, err := j.client.Get(ctx, cacheKey).Result()
 	if err != nil {
 		return false
 	}
@@ -131,13 +131,13 @@ func (j *jwtTokenValidator) validateTokenWithSecurityStampFromCache(userId int64
 	return cachedStamp != "" && cachedStamp == securityStamp
 }
 
-func (j *jwtTokenValidator) validateTokenWithSecurityStampFromDb(userId int64, securityStamp string) bool {
+func (j *jwtTokenValidator) validateTokenWithSecurityStampFromDb(ctx context.Context, userId int64, securityStamp string) bool {
 	var user models.User
 	if err := j.db.First(&user, userId).Error; err != nil {
 		return false
 	}
 
-	if err := j.client.Set(context.Background(), generateStampCacheKey(userId), user.SecurityStamp.String(), DefaultCacheExpiration).Err(); err != nil {
+	if err := j.client.Set(ctx, generateStampCacheKey(userId), user.SecurityStamp.String(), DefaultCacheExpiration).Err(); err != nil {
 		// Dont return just log
 		j.logger.Error(err)
 	}
@@ -149,7 +149,7 @@ func (j *jwtTokenValidator) validateTokenWithSecurityStampFromDb(userId int64, s
 	return true
 }
 
-func (j *jwtTokenValidator) validateTokenWithTokenKey(userId int64, claims jwtGo.MapClaims) error {
+func (j *jwtTokenValidator) validateTokenWithTokenKey(ctx context.Context, userId int64, claims jwtGo.MapClaims) error {
 	tokenKey := claims[constants.TokenValidityKey]
 	invalidTokenKeyErr := errors.New("Invalid token key")
 
@@ -157,10 +157,10 @@ func (j *jwtTokenValidator) validateTokenWithTokenKey(userId int64, claims jwtGo
 		return invalidTokenKeyErr
 	}
 
-	isValid := j.validateTokenWithTokenKeyFromCache(userId, tokenKey.(string))
+	isValid := j.validateTokenWithTokenKeyFromCache(ctx, userId, tokenKey.(string))
 
 	if !isValid {
-		isValid = j.validateTokenWithTokenKeyFromDb(userId, tokenKey.(string))
+		isValid = j.validateTokenWithTokenKeyFromDb(ctx, userId, tokenKey.(string))
 	}
 
 	if !isValid {
@@ -170,10 +170,10 @@ func (j *jwtTokenValidator) validateTokenWithTokenKey(userId int64, claims jwtGo
 	return nil
 }
 
-func (j *jwtTokenValidator) validateTokenWithTokenKeyFromCache(userId int64, tokenKey string) bool {
+func (j *jwtTokenValidator) validateTokenWithTokenKeyFromCache(ctx context.Context, userId int64, tokenKey string) bool {
 	tokenCacheKey := generateTokenValidityCacheKey(userId, tokenKey)
 
-	cachedTokenKey, err := j.client.Get(context.Background(), tokenCacheKey).Result()
+	cachedTokenKey, err := j.client.Get(ctx, tokenCacheKey).Result()
 	if err != nil {
 		return false
 	}
@@ -181,7 +181,7 @@ func (j *jwtTokenValidator) validateTokenWithTokenKeyFromCache(userId int64, tok
 	return cachedTokenKey != ""
 }
 
-func (j *jwtTokenValidator) validateTokenWithTokenKeyFromDb(userId int64, tokenKey string) bool {
+func (j *jwtTokenValidator) validateTokenWithTokenKeyFromDb(ctx context.Context, userId int64, tokenKey string) bool {
 	tokenCacheKey := generateTokenValidityCacheKey(userId, tokenKey)
 
 	var count int64
@@ -189,7 +189,7 @@ func (j *jwtTokenValidator) validateTokenWithTokenKeyFromDb(userId int64, tokenK
 		return false
 	}
 
-	if err := j.client.Set(context.Background(), tokenCacheKey, tokenKey, DefaultCacheExpiration).Err(); err != nil {
+	if err := j.client.Set(ctx, tokenCacheKey, tokenKey, DefaultCacheExpiration).Err(); err != nil {
 		// Dont return just log
 		j.logger.Error(err)
 	}

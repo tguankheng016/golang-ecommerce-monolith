@@ -67,12 +67,12 @@ func authenticate(validator *validator.Validate, jwtTokenGenerator jwt.IJwtToken
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		refreshToken, refreshTokenKey, refreshTokenSeconds, err := jwtTokenGenerator.GenerateRefreshToken(&user)
+		refreshToken, refreshTokenKey, refreshTokenSeconds, err := jwtTokenGenerator.GenerateRefreshToken(ctx, &user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		accessToken, accessTokenSeconds, err := jwtTokenGenerator.GenerateAccessToken(&user, refreshTokenKey)
+		accessToken, accessTokenSeconds, err := jwtTokenGenerator.GenerateAccessToken(ctx, &user, refreshTokenKey)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}

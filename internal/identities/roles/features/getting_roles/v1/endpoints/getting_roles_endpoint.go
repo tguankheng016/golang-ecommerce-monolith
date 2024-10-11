@@ -7,7 +7,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/roles/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
@@ -15,30 +15,30 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-type GetUsersRequest struct {
+type GetRolesRequest struct {
 	*pagination.PageRequest
 }
 
-type GetUsersResult struct {
-	*pagination.PageResultDto[dtos.UserDto]
-} // @name GetUsersResult
+type GetRolesResult struct {
+	*pagination.PageResultDto[dtos.RoleDto]
+} // @name GetRolesResult
 
 func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
-	group := echo.Group("/api/v1/users")
-	group.GET("", getAllUsers(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsers))
+	group := echo.Group("/api/v1/roles")
+	group.GET("", getAllRoles(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRoles))
 }
 
-// GetAllUsers
-// @Tags Users
-// @Summary Get all users
-// @Description Get all users
+// GetAllRoles
+// @Tags Roles
+// @Summary Get all roles
+// @Description Get all roles
 // @Accept json
 // @Produce json
-// @Param GetUsersRequest query GetUsersRequest false "GetUsersRequest"
-// @Success 200 {object} GetUsersResult
+// @Param GetRolesRequest query GetRolesRequest false "GetRolesRequest"
+// @Success 200 {object} GetRolesResult
 // @Security ApiKeyAuth
-// @Router /api/v1/users [get]
-func getAllUsers(validator *validator.Validate) echo.HandlerFunc {
+// @Router /api/v1/roles [get]
+func getAllRoles(validator *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
@@ -47,7 +47,7 @@ func getAllUsers(validator *validator.Validate) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		var users []models.User
+		var roles []models.Role
 
 		pageRequest, err := pagination.GetPageRequestFromCtx(c)
 		if err != nil {
@@ -58,29 +58,29 @@ func getAllUsers(validator *validator.Validate) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		fields := []string{"first_name", "last_name", "user_name", "email"}
+		fields := []string{"name"}
 
 		if err := pageRequest.SanitizeSorting(fields...); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		userPageRequest := &GetUsersRequest{PageRequest: pageRequest}
+		rolePageRequest := &GetRolesRequest{PageRequest: pageRequest}
 
 		query := tx
-		countQuery := tx.Model(&models.User{})
+		countQuery := tx.Model(&models.Role{})
 
-		if userPageRequest.Filters != "" {
-			likeExpr := userPageRequest.BuildFiltersExpr(fields...)
+		if rolePageRequest.Filters != "" {
+			likeExpr := rolePageRequest.BuildFiltersExpr(fields...)
 			query = query.Where(likeExpr)
 			countQuery = countQuery.Where(likeExpr)
 		}
 
-		if userPageRequest.Sorting != "" {
-			query = query.Order(userPageRequest.Sorting)
+		if rolePageRequest.Sorting != "" {
+			query = query.Order(rolePageRequest.Sorting)
 		}
 
-		if userPageRequest.SkipCount > 0 || userPageRequest.MaxResultCount > 0 {
-			query = userPageRequest.Paginate(query)
+		if rolePageRequest.SkipCount > 0 || rolePageRequest.MaxResultCount > 0 {
+			query = rolePageRequest.Paginate(query)
 		}
 
 		var count int64
@@ -89,17 +89,17 @@ func getAllUsers(validator *validator.Validate) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		if err := query.Find(&users).Error; err != nil {
+		if err := query.Find(&roles).Error; err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		var userDtos []dtos.UserDto
-		if err := copier.Copy(&userDtos, &users); err != nil {
+		var roleDtos []dtos.RoleDto
+		if err := copier.Copy(&roleDtos, &roles); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		result := &GetUsersResult{
-			pagination.NewPageResultDto(userDtos, count),
+		result := &GetRolesResult{
+			pagination.NewPageResultDto(roleDtos, count),
 		}
 
 		return c.JSON(http.StatusOK, result)

@@ -20,6 +20,19 @@ definitions:
       refreshTokenExpireInSeconds:
         type: integer
     type: object
+  CreateOrEditRoleDto:
+    properties:
+      grantedPermissions:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+    required:
+    - name
+    type: object
   CreateOrEditUserDto:
     properties:
       email:
@@ -50,6 +63,19 @@ definitions:
     - firstName
     - lastName
     - userName
+    type: object
+  CreateRoleDto:
+    properties:
+      grantedPermissions:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+    required:
+    - name
     type: object
   CreateUserDto:
     properties:
@@ -82,6 +108,19 @@ definitions:
     - lastName
     - userName
     type: object
+  EditRoleDto:
+    properties:
+      grantedPermissions:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+    required:
+    - name
+    type: object
   EditUserDto:
     properties:
       email:
@@ -113,6 +152,20 @@ definitions:
     - lastName
     - userName
     type: object
+  GetRoleByIdResult:
+    properties:
+      role:
+        $ref: '#/definitions/CreateOrEditRoleDto'
+    type: object
+  GetRolesResult:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/RoleDto'
+        type: array
+      totalCount:
+        type: integer
+    type: object
   GetUserByIdResult:
     properties:
       user:
@@ -141,6 +194,13 @@ definitions:
         type: string
       expireInSeconds:
         type: integer
+    type: object
+  RoleDto:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
     type: object
   UserDto:
     properties:
@@ -206,6 +266,139 @@ paths:
       summary: Refresh access token
       tags:
       - Accounts
+  /api/v1/accounts/sign-out:
+    post:
+      consumes:
+      - application/json
+      description: Sign out
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Sign out
+      tags:
+      - Accounts
+  /api/v1/role:
+    post:
+      consumes:
+      - application/json
+      description: Create new role
+      parameters:
+      - description: CreateRoleDto
+        in: body
+        name: CreateRoleDto
+        schema:
+          $ref: '#/definitions/CreateRoleDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/RoleDto'
+      security:
+      - ApiKeyAuth: []
+      summary: Create new role
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Update role
+      parameters:
+      - description: EditRoleDto
+        in: body
+        name: EditRoleDto
+        schema:
+          $ref: '#/definitions/EditRoleDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/RoleDto'
+      security:
+      - ApiKeyAuth: []
+      summary: Update role
+      tags:
+      - Roles
+  /api/v1/role/{roleId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete role
+      parameters:
+      - description: Role Id
+        in: path
+        name: roleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Delete role
+      tags:
+      - Roles
+    get:
+      consumes:
+      - application/json
+      description: Get role by id
+      parameters:
+      - description: Role Id
+        in: path
+        name: roleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetRoleByIdResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get role by id
+      tags:
+      - Roles
+  /api/v1/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get all roles
+      parameters:
+      - in: query
+        name: filters
+        type: string
+      - in: query
+        name: maxResultCount
+        type: integer
+      - in: query
+        name: skipCount
+        type: integer
+      - in: query
+        name: sorting
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetRolesResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Get all roles
+      tags:
+      - Roles
   /api/v1/user:
     post:
       consumes:

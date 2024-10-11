@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/constants"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/data"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
@@ -15,26 +16,28 @@ import (
 )
 
 func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
-	group := echo.Group("/api/v1/user/:userId")
-	group.DELETE("", deleteUser(), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersDelete))
+	group := echo.Group("/api/v1/role/:roleId")
+	group.DELETE("", deleteRole(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRolesDelete))
 }
 
-// DeleteUser
-// @Tags Users
-// @Summary Delete user
-// @Description Delete user
+// DeleteRole
+// @Tags Roles
+// @Summary Delete role
+// @Description Delete role
 // @Accept json
 // @Produce json
-// @Param userId path int true "User Id"
+// @Param roleId path int true "Role Id"
 // @Success 200
 // @Security ApiKeyAuth
-// @Router /api/v1/user/{userId} [delete]
-func deleteUser() echo.HandlerFunc {
+// @Router /api/v1/role/{roleId} [delete]
+func deleteRole(permissionManager permissions.IPermissionManager) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var userId int64
+		ctx := c.Request().Context()
+
+		var roleId int64
 
 		err := echo.PathParamsBinder(c).
-			Int64("userId", &userId).
+			Int64("roleId", &roleId).
 			BindError()
 
 		if err != nil {
@@ -46,16 +49,30 @@ func deleteUser() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		var user models.User
-		if err := tx.First(&user, userId).Error; err != nil {
+		var role models.Role
+		if err := tx.First(&role, roleId).Error; err != nil {
 			return echo.NewHTTPError(http.StatusNotFound, err)
 		}
 
-		if user.NormalizedUserName == strings.ToUpper(constants.DefaultAdminUsername) {
+		if strings.EqualFold(role.Name, constants.DefaultAdminRoleName) {
 			return echo.NewHTTPError(http.StatusBadRequest, errors.New("You cannot delete the default admin user"))
 		}
 
-		if err := tx.Delete(&user).Error; err != nil {
+		userManager := data.NewUserManager(tx)
+		userIds, err := userManager.GetUserIdsInRole(roleId)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+
+		for _, userId := range userIds {
+			if err := userManager.RemoveToRoles(&models.User{Id: userId}, []int64{roleId}); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err)
+			}
+
+			permissionManager.RemoveUserRoleCaches(ctx, userId)
+		}
+
+		if err := tx.Delete(&role).Error; err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 

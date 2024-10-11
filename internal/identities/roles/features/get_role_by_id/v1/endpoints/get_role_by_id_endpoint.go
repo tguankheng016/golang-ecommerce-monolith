@@ -10,7 +10,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/core/helpers"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
@@ -18,9 +17,9 @@ type GetRoleByIdResult struct {
 	Role dtos.CreateOrEditRoleDto
 } // @name GetRoleByIdResult
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/role/:roleId")
-	group.GET("", getRoleById(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRoles))
+	group.GET("", getRoleById(permissionManager), middlewares.Authorize(permissions.PagesAdministrationRoles))
 }
 
 // GetRoleById
@@ -49,7 +48,7 @@ func getRoleById(permissionManager permissions.IPermissionManager) echo.HandlerF
 			roleEditDto = dtos.CreateOrEditRoleDto{}
 		} else {
 			// Edit
-			tx, err := database.RetrieveTxCtx(c)
+			tx, err := database.GetTxFromCtx(c)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err)
 			}

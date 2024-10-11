@@ -11,13 +11,12 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/roles/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate) {
 	group := echo.Group("/api/v1/role")
-	group.POST("", createRole(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRolesCreate))
+	group.POST("", createRole(validator), middlewares.Authorize(permissions.PagesAdministrationRolesCreate))
 }
 
 // CreateRole
@@ -34,7 +33,7 @@ func createRole(validator *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

@@ -11,13 +11,12 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user")
-	group.PUT("", updateUser(validator, permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersEdit))
+	group.PUT("", updateUser(validator, permissionManager), middlewares.Authorize(permissions.PagesAdministrationUsersEdit))
 }
 
 // UpdateUser
@@ -44,7 +43,7 @@ func updateUser(validator *validator.Validate, permissionManager permissions.IPe
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

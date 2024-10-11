@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/core/helpers"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
@@ -14,9 +13,9 @@ type UserPermissionsResult struct {
 	Items []string `json:"items"`
 } // @name UserPermissionsResult
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user/:userId/permissions")
-	group.GET("", getUserPermissions(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersChangePermissions))
+	group.GET("", getUserPermissions(permissionManager), middlewares.Authorize(permissions.PagesAdministrationUsersChangePermissions))
 }
 
 // GetUserPermissions

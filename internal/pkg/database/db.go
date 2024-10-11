@@ -45,6 +45,8 @@ func NewGormDB(options *GormOptions) (*gorm.DB, error) {
 
 	}, backoff.WithMaxRetries(bo, uint64(maxRetries-1)))
 
+	registerCallBacks(gormDb)
+
 	return gormDb, err
 }
 
@@ -84,8 +86,9 @@ func Migrate(gorm *gorm.DB, types ...interface{}) error {
 	return nil
 }
 
-func RetrieveTxCtx(c echo.Context) (*gorm.DB, error) {
-	tx, ok := c.Request().Context().Value(appConsts.CtxKey(appConsts.DbContextKey)).(*gorm.DB)
+func GetTxFromCtx(c echo.Context) (*gorm.DB, error) {
+	tx, ok := c.Get(appConsts.DbContextKey).(*gorm.DB)
+	//tx, ok := c.Request().Context().Value(appConsts.CtxKey(appConsts.DbContextKey)).(*gorm.DB)
 	if !ok {
 		return nil, errors.New("Transaction not found in context")
 	}

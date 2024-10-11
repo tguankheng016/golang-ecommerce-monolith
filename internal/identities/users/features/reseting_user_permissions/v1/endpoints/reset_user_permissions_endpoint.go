@@ -7,14 +7,13 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"gorm.io/gorm"
 )
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user/:userId/reset-permissions")
-	group.PUT("", resetUserPermissions(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersChangePermissions))
+	group.PUT("", resetUserPermissions(permissionManager), middlewares.Authorize(permissions.PagesAdministrationUsersChangePermissions))
 }
 
 // ResetUserPermissions
@@ -36,7 +35,7 @@ func resetUserPermissions(permissionManager permissions.IPermissionManager) echo
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

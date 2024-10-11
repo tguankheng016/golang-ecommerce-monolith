@@ -18,8 +18,8 @@ import (
 
 type IPermissionManager interface {
 	IsGranted(ctx context.Context, userId int64, permissionName string) (bool, error)
-	SetUserPermissions(ctx context.Context, userId int64) (map[string]string, error)
-	SetRolePermissions(ctx context.Context, roleId int64) (map[string]string, error)
+	SetUserPermissions(ctx context.Context, userId int64) (map[string]struct{}, error)
+	SetRolePermissions(ctx context.Context, roleId int64) (map[string]struct{}, error)
 	RemoveUserRoleCaches(ctx context.Context, userId int64)
 	RemoveUserPermissionCaches(ctx context.Context, userId int64)
 	RemoveRolePermissionCaches(cctx context.Context, roleId int64)
@@ -112,7 +112,7 @@ func (p *permissionManager) isGrantedFromDb(ctx context.Context, userId int64, p
 	return ok, nil
 }
 
-func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64) (map[string]string, error) {
+func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64) (map[string]struct{}, error) {
 	var user models.User
 	if err := p.db.Model(&models.User{}).Preload("Roles").First(&user, userId).Error; err != nil {
 		return nil, err
@@ -139,15 +139,15 @@ func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64
 		return nil, err
 	}
 
-	grantedPermissions := make(map[string]string)
-	grantedUserPermissions := make(map[string]string)
-	prohibitedUserPermissions := make(map[string]string)
+	grantedPermissions := make(map[string]struct{})
+	grantedUserPermissions := make(map[string]struct{})
+	prohibitedUserPermissions := make(map[string]struct{})
 	for _, permission := range userPermissions {
 		if permission.IsGranted {
-			grantedUserPermissions[permission.Name] = permission.Name
-			grantedPermissions[permission.Name] = permission.Name
+			grantedUserPermissions[permission.Name] = struct{}{}
+			grantedPermissions[permission.Name] = struct{}{}
 		} else {
-			prohibitedUserPermissions[permission.Name] = permission.Name
+			prohibitedUserPermissions[permission.Name] = struct{}{}
 		}
 	}
 
@@ -166,11 +166,11 @@ func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64
 			return nil, err
 		}
 
-		for _, permission := range rolePermissions {
+		for permission, _ := range rolePermissions {
 			if _, ok := prohibitedUserPermissions[permission]; !ok {
 				if _, ok := grantedPermissions[permission]; !ok {
 					// key does not exists
-					grantedPermissions[permission] = permission
+					grantedPermissions[permission] = struct{}{}
 				}
 			}
 		}
@@ -179,7 +179,7 @@ func (p *permissionManager) SetUserPermissions(ctx context.Context, userId int64
 	return grantedPermissions, nil
 }
 
-func (p *permissionManager) SetRolePermissions(ctx context.Context, roleId int64) (map[string]string, error) {
+func (p *permissionManager) SetRolePermissions(ctx context.Context, roleId int64) (map[string]struct{}, error) {
 	var role models.Role
 	if err := p.db.Model(&models.Role{}).First(&role, roleId).Error; err != nil {
 		return nil, err
@@ -197,18 +197,18 @@ func (p *permissionManager) SetRolePermissions(ctx context.Context, roleId int64
 		allPermissions := GetAppPermissions().Items
 
 		// Get all prohibited permissions for admin role
-		prohibitedPermissions := make(map[string]string)
+		prohibitedPermissions := make(map[string]struct{})
 		for _, permission := range rolePermissions {
 			if !permission.IsGranted {
-				prohibitedPermissions[permission.Name] = permission.Name
+				prohibitedPermissions[permission.Name] = struct{}{}
 			}
 		}
 
 		// Excluded prohibited permissions
-		grantedPermissions := make(map[string]string)
+		grantedPermissions := make(map[string]struct{})
 		for key := range allPermissions {
 			if _, ok := prohibitedPermissions[key]; !ok {
-				grantedPermissions[key] = key
+				grantedPermissions[key] = struct{}{}
 			}
 		}
 
@@ -223,10 +223,10 @@ func (p *permissionManager) SetRolePermissions(ctx context.Context, roleId int64
 
 		return grantedPermissions, nil
 	} else {
-		grantedPermissions := make(map[string]string)
+		grantedPermissions := make(map[string]struct{})
 		for _, permission := range rolePermissions {
 			if permission.IsGranted {
-				grantedPermissions[permission.Name] = permission.Name
+				grantedPermissions[permission.Name] = struct{}{}
 			}
 		}
 

@@ -11,13 +11,12 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/role/:roleId")
-	group.DELETE("", deleteRole(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRolesDelete))
+	group.DELETE("", deleteRole(permissionManager), middlewares.Authorize(permissions.PagesAdministrationRolesDelete))
 }
 
 // DeleteRole
@@ -39,7 +38,7 @@ func deleteRole(permissionManager permissions.IPermissionManager) echo.HandlerFu
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

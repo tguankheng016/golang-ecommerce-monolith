@@ -9,8 +9,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
@@ -20,9 +18,9 @@ type GetCurrentSessionResult struct {
 	GrantedPermissions map[string]bool        `json:"grantedPermissions"`
 } // @name GetCurrentSessionResult
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/accounts/current-session")
-	group.GET("", getCurrentSession(permissionManager), middlewares.TryValidateToken(jwt))
+	group.GET("", getCurrentSession(permissionManager))
 }
 
 // GetCurrentSession
@@ -45,7 +43,7 @@ func getCurrentSession(permissionManager permissions.IPermissionManager) echo.Ha
 
 		userId, ok := echoServer.GetCurrentUser(c)
 		if ok {
-			tx, err := database.RetrieveTxCtx(c)
+			tx, err := database.GetTxFromCtx(c)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err)
 			}

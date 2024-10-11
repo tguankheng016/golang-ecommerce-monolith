@@ -52,7 +52,7 @@ func authenticate(validator *validator.Validate, jwtTokenGenerator jwt.IJwtToken
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

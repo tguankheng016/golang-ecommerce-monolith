@@ -10,9 +10,9 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 )
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, jwtTokenGenerator jwt.IJwtTokenGenerator) {
+func MapRoute(echo *echo.Echo, jwtTokenGenerator jwt.IJwtTokenGenerator) {
 	group := echo.Group("/api/v1/accounts/sign-out")
-	group.POST("", signOut(jwtTokenGenerator), middlewares.ValidateToken(jwt))
+	group.POST("", signOut(jwtTokenGenerator), middlewares.Authorize(""))
 }
 
 // SigningOut

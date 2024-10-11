@@ -10,7 +10,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/roles/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/pagination"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
@@ -23,9 +22,9 @@ type GetRolesResult struct {
 	*pagination.PageResultDto[dtos.RoleDto]
 } // @name GetRolesResult
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate) {
 	group := echo.Group("/api/v1/roles")
-	group.GET("", getAllRoles(validator), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRoles))
+	group.GET("", getAllRoles(validator), middlewares.Authorize(permissions.PagesAdministrationRoles))
 }
 
 // GetAllRoles
@@ -42,7 +41,7 @@ func getAllRoles(validator *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

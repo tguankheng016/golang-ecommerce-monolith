@@ -2,54 +2,51 @@ package middlewares
 
 import (
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
+	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	echoServer "github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/logger"
 )
 
-// ValidateToken validates the JWT token in the Authorization header. If the token is invalid, it returns a 401 Unauthorized response.
-func ValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
-	return validateToken(validator, false)
-}
+// SetupAuthenticate is a middleware that try to authenticate the user with the given
+// `tokenValidator` using the Authorization header.
+//
+// If the header is not present or the token is invalid, the middleware will call the
+// next handler as usual.
+//
+// If the token is valid, the middleware will set the current user id into the request
+// context, and then call the next handler.
+//
+// The `config.Skipper` can be used to skip the authentication process.
+func SetupAuthenticate(skipper echoMiddleware.Skipper, tokenValidator jwt.IJwtTokenValidator, logger logger.ILogger) echo.MiddlewareFunc {
+	// Defaults
+	if skipper == nil {
+		skipper = echoMiddleware.DefaultSkipper
+	}
 
-// TryValidateToken validates the JWT token in the Authorization header but does not throw an error if the token is invalid.
-func TryValidateToken(validator jwt.IJwtTokenValidator) echo.MiddlewareFunc {
-	return validateToken(validator, true)
-}
-
-func validateToken(validator jwt.IJwtTokenValidator, canSkipError bool) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Ignore check authentication in test
-			env := os.Getenv("APP_ENV")
-			if env == "test" {
+			if skipper(c) {
 				return next(c)
 			}
 
 			// Parse and verify jwt access token
-			auth, ok := bearerAuth(c.Request())
+			authToken, ok := bearerAuth(c.Request())
 			if !ok {
-				if !canSkipError {
-					return echo.NewHTTPError(http.StatusUnauthorized, errors.New("Invalid access token"))
-				} else {
-					return next(c)
-				}
+				logger.Warn("No access token found in the Authorization header")
+				return next(c)
 			}
 
 			ctx := c.Request().Context()
 
 			// Validate jwt access token
-			userId, claims, err := validator.ValidateToken(ctx, auth, jwt.AccessToken)
+			userId, claims, err := tokenValidator.ValidateToken(ctx, authToken, jwt.AccessToken)
 			if err != nil {
-				if !canSkipError {
-					return echo.NewHTTPError(http.StatusUnauthorized, err)
-				} else {
-					return next(c)
-				}
+				logger.Error(err)
+				return next(c)
 			}
 
 			echoServer.SetCurrentUser(c, userId)

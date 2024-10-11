@@ -9,6 +9,7 @@ const (
 	RefreshTokenValidityKey = "refresh_token_validity_key"
 	SecurityStampKey        = "Identity.SecurityStamp"
 	DbContextKey            = "Ctx.DbContext.Tx"
+	CurrentUserContextKey   = "Ctx.CurrentUser.Id"
 )
 
 type CtxKey string

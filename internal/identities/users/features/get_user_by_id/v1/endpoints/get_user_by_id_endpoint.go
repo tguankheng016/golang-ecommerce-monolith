@@ -10,7 +10,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/users/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 )
 
@@ -18,9 +17,9 @@ type GetUserByIdResult struct {
 	User dtos.CreateOrEditUserDto
 } // @name GetUserByIdResult
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo) {
 	group := echo.Group("/api/v1/user/:userId")
-	group.GET("", getUserById(), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsers))
+	group.GET("", getUserById(), middlewares.Authorize(permissions.PagesAdministrationUsers))
 }
 
 // GetUserById
@@ -47,7 +46,7 @@ func getUserById() echo.HandlerFunc {
 			userEditDto = dtos.CreateOrEditUserDto{}
 		} else {
 			// Edit
-			tx, err := database.RetrieveTxCtx(c)
+			tx, err := database.GetTxFromCtx(c)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err)
 			}

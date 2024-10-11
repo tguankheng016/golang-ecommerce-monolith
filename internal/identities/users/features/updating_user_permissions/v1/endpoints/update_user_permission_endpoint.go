@@ -8,7 +8,6 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/models"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"gorm.io/gorm"
 )
@@ -17,9 +16,9 @@ type UpdateUserPermissionDto struct {
 	GrantedPermissions []string `json:"grantedPermissions"`
 } // @name UpdateUserPermissionDto
 
-func MapRoute(echo *echo.Echo, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/user/:userId/permissions")
-	group.PUT("", updateUserPermissions(permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationUsersChangePermissions))
+	group.PUT("", updateUserPermissions(permissionManager), middlewares.Authorize(permissions.PagesAdministrationUsersChangePermissions))
 }
 
 // UpdateUserPermissions
@@ -55,13 +54,13 @@ func updateUserPermissions(permissionManager permissions.IPermissionManager) ech
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
 		// Prohibit
-		for _, oldPermission := range oldPermissions {
+		for oldPermission := range oldPermissions {
 			if !slices.Contains(updateUserPermissionDto.GrantedPermissions, oldPermission) {
 				if err := tx.Where("user_id = ? AND name = ?", userId, oldPermission).Delete(&models.UserRolePermission{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 					return echo.NewHTTPError(http.StatusInternalServerError, err)

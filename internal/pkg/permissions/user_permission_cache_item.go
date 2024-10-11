@@ -4,13 +4,13 @@ import "fmt"
 
 type UserPermissionCacheItem struct {
 	UserId                int64
-	Permissions           map[string]string
-	ProhibitedPermissions map[string]string
+	Permissions           map[string]struct{}
+	ProhibitedPermissions map[string]struct{}
 }
 
 const UserPermissionCacheName = "UserPermissions"
 
-func NewUserPermissionCacheItem(userId int64, permissions map[string]string, prohibitedPermissions map[string]string) *UserPermissionCacheItem {
+func NewUserPermissionCacheItem(userId int64, permissions map[string]struct{}, prohibitedPermissions map[string]struct{}) *UserPermissionCacheItem {
 	return &UserPermissionCacheItem{
 		UserId:                userId,
 		Permissions:           permissions,

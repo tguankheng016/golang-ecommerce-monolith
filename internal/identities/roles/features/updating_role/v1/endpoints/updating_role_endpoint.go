@@ -14,14 +14,13 @@ import (
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/identities/roles/dtos"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/database"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/http/echo/middlewares"
-	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/jwt"
 	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/permissions"
 	"gorm.io/gorm"
 )
 
-func MapRoute(echo *echo.Echo, validator *validator.Validate, jwt jwt.IJwtTokenValidator, permissionManager permissions.IPermissionManager) {
+func MapRoute(echo *echo.Echo, validator *validator.Validate, permissionManager permissions.IPermissionManager) {
 	group := echo.Group("/api/v1/role")
-	group.PUT("", updateRole(validator, permissionManager), middlewares.ValidateToken(jwt), middlewares.Authorize(permissionManager, permissions.PagesAdministrationRolesEdit))
+	group.PUT("", updateRole(validator, permissionManager), middlewares.Authorize(permissions.PagesAdministrationRolesEdit))
 }
 
 // UpdateRole
@@ -48,7 +47,7 @@ func updateRole(validator *validator.Validate, permissionManager permissions.IPe
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
 
-		tx, err := database.RetrieveTxCtx(c)
+		tx, err := database.GetTxFromCtx(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -80,7 +79,7 @@ func updateRole(validator *validator.Validate, permissionManager permissions.IPe
 		isAdmin := strings.EqualFold(role.Name, constants.DefaultAdminRoleName)
 
 		// Prohibit
-		for _, oldPermission := range oldPermissions {
+		for oldPermission := range oldPermissions {
 			if !slices.Contains(editRoleDto.GrantedPermissions, oldPermission) {
 				if err := tx.Where("role_id = ? AND name = ?", role.Id, oldPermission).Delete(&models.UserRolePermission{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 					return echo.NewHTTPError(http.StatusInternalServerError, err)

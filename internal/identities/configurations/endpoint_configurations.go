@@ -35,26 +35,26 @@ func ConfigEndpoints(
 	echo *echo.Echo,
 ) {
 	// Users
-	getting_users.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	get_user_by_id.MapRoute(echo, jwtTokenValidator, permissionManager)
-	creating_user.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	updating_user.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	deleting_user.MapRoute(echo, jwtTokenValidator, permissionManager)
-	getting_user_permissions.MapRoute(echo, jwtTokenValidator, permissionManager)
-	updating_user_permissions.MapRoute(echo, jwtTokenValidator, permissionManager)
-	reseting_user_permissions.MapRoute(echo, jwtTokenValidator, permissionManager)
+	getting_users.MapRoute(echo, validator)
+	get_user_by_id.MapRoute(echo)
+	creating_user.MapRoute(echo, validator)
+	updating_user.MapRoute(echo, validator, permissionManager)
+	deleting_user.MapRoute(echo)
+	getting_user_permissions.MapRoute(echo, permissionManager)
+	updating_user_permissions.MapRoute(echo, permissionManager)
+	reseting_user_permissions.MapRoute(echo, permissionManager)
 
 	// Roles
-	getting_roles.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	get_role_by_id.MapRoute(echo, jwtTokenValidator, permissionManager)
-	creating_role.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	updating_role.MapRoute(echo, validator, jwtTokenValidator, permissionManager)
-	deleting_role.MapRoute(echo, jwtTokenValidator, permissionManager)
+	getting_roles.MapRoute(echo, validator)
+	get_role_by_id.MapRoute(echo, permissionManager)
+	creating_role.MapRoute(echo, validator)
+	updating_role.MapRoute(echo, validator, permissionManager)
+	deleting_role.MapRoute(echo, permissionManager)
 
 	// Accounts
-	getting_current_session.MapRoute(echo, jwtTokenValidator, permissionManager)
+	getting_current_session.MapRoute(echo, permissionManager)
 	getting_all_permissions.MapRoute(echo)
 	authenticate.MapRoute(echo, validator, jwtTokenGenerator)
 	refreshToken.MapRoute(echo, validator, jwtTokenGenerator, jwtTokenValidator)
-	sign_out.MapRoute(echo, jwtTokenValidator, jwtTokenGenerator)
+	sign_out.MapRoute(echo, jwtTokenGenerator)
 }

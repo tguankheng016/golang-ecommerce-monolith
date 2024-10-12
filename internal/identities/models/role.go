@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/core/domain"
 	"gorm.io/gorm"
 )
 
@@ -12,8 +13,7 @@ type Role struct {
 	Id        int64          `json:"id" gorm:"primaryKey"`
 	Name      string         `json:"name" gorm:"type:varchar(256);not null"`
 	CreatedAt time.Time      `json:"createdAt" gorm:"default:current_timestamp"`
-	CreatedBy sql.NullInt64  `json:"createdBy"`
 	UpdatedAt sql.NullTime   `json:"updatedAt"`
-	UpdatedBy sql.NullInt64  `json:"updatedBy"`
 	DeletedAt gorm.DeletedAt `json:"deletedAt"`
+	*domain.FullAuditedEntity
 }

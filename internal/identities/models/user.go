@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/tguankheng016/golang-ecommerce-monolith/internal/pkg/core/domain"
 
 	"gorm.io/gorm"
 )
@@ -21,9 +22,8 @@ type User struct {
 	Password           string         `json:"password" gorm:"not null" copier:"-"`
 	SecurityStamp      uuid.UUID      `json:"securityStamp" gorm:"not null"`
 	CreatedAt          time.Time      `json:"createdAt" gorm:"default:current_timestamp"`
-	CreatedBy          sql.NullInt64  `json:"createdBy"`
 	UpdatedAt          sql.NullTime   `json:"updatedAt"`
-	UpdatedBy          sql.NullInt64  `json:"updatedBy"`
 	DeletedAt          gorm.DeletedAt `json:"deletedAt"`
 	Roles              []Role         `gorm:"many2many:user_roles;"`
+	*domain.FullAuditedEntity
 }

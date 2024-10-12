@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 
@@ -59,7 +60,7 @@ func SetupTransaction(skipper echoMiddleware.Skipper, db *gorm.DB) echo.Middlewa
 				return err
 			}
 
-			if err := tx.Commit().Error; err != nil {
+			if err := tx.Commit().Error; err != nil && err != sql.ErrTxDone {
 				log.Println("Failed to commit transaction")
 				return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
 			}

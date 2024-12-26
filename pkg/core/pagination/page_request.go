@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/labstack/echo/v4"
 	"github.com/tguankheng016/commerce-mono/pkg/core/helpers"
 )
 
@@ -13,23 +12,6 @@ type PageRequest struct {
 	SkipCount      int    `query:"skipCount" json:"skipCount,omitempty"`
 	Sorting        string `query:"sorting" json:"sorting,omitempty"`
 	Filters        string `query:"filters" json:"filters,omitempty"`
-}
-
-func GetPageRequestFromCtx(c echo.Context) (PageRequest, error) {
-	res := PageRequest{}
-
-	err := echo.QueryParamsBinder(c).
-		Int("maxResultCount", &res.MaxResultCount).
-		Int("skipCount", &res.SkipCount).
-		String("filters", &res.Filters).
-		String("sorting", &res.Sorting).
-		BindError() // returns first binding error
-
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
 }
 
 func (p PageRequest) SanitizeSorting(validSortFields ...string) error {

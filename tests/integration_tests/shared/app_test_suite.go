@@ -20,7 +20,6 @@ import (
 	"github.com/tguankheng016/commerce-mono/internal/users"
 	userConsts "github.com/tguankheng016/commerce-mono/internal/users/constants"
 	userService "github.com/tguankheng016/commerce-mono/internal/users/services"
-	"github.com/tguankheng016/commerce-mono/pkg/background"
 	"github.com/tguankheng016/commerce-mono/pkg/caching"
 	"github.com/tguankheng016/commerce-mono/pkg/environment"
 	"github.com/tguankheng016/commerce-mono/pkg/http"
@@ -85,7 +84,6 @@ func (suite *AppTestSuite) SetupSuite() {
 			identities.Module,
 			users.Module,
 			seeds.Module,
-			background.Module,
 			configurations.Module,
 			http.Module,
 			fx.Invoke(func(

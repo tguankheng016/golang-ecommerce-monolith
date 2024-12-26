@@ -104,8 +104,6 @@ func MapLatestRoutes(
 	refreshing_token.MapRoute(api, pool, jwtTokenGenerator, tokenHandler)
 	getting_all_permissions.MapRoute(api)
 	getting_current_session.MapRoute(api, pool, userRolePermissionManager)
-	changing_password.MapRoute(api, pool)
-	updating_current_profile.MapRoute(api, pool)
 }
 
 func MapV1Routes(

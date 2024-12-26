@@ -1,0 +1,10 @@
+{
+  "serverOptions": {
+    "name": "commerce_mono",
+    "port": "0",
+    "host": "localhost"
+  },
+  "redisOptions": {
+    "enabled": false
+  }
+}

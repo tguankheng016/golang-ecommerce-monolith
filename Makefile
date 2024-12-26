@@ -1,9 +1,14 @@
-# swagger
-swagger_app:
-	@echo Starting swagger generating
-	swag init --parseDependency --parseInternal -g cmd/app/main.go -o docs
+# RUN
+run:
+	cd cmd/app && go run .
 
-# atlas
-# execute at root directory with atlas.hcl
-atlas_cmd:
-	atlas migrate diff migration_name --env gorm
+# GOOSE
+# https://github.com/pressly/goose
+MIGRATION_NAME = added_user_role_permissions
+add_migration:
+	cd internal/data/migrations && goose create $(MIGRATION_NAME) sql
+
+
+# Swaggo
+run_swagger:
+	swag init --parseDependency --parseInternal -g cmd/app/main.go -o internal/docs/v1

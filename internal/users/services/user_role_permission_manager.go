@@ -2,17 +2,14 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/eko/gocache/lib/v4/cache"
 	"github.com/eko/gocache/lib/v4/store"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	roleConsts "github.com/tguankheng016/commerce-mono/internal/roles/constants"
 	roleService "github.com/tguankheng016/commerce-mono/internal/roles/services"
-	"github.com/tguankheng016/commerce-mono/internal/users/models"
 	"github.com/tguankheng016/commerce-mono/pkg/caching"
 	"github.com/tguankheng016/commerce-mono/pkg/logging"
 	"github.com/tguankheng016/commerce-mono/pkg/permissions"
@@ -69,7 +66,7 @@ func (u *userRolePermissionManager) SetUserPermissions(ctx context.Context, user
 		logging.Logger.Error("error in setting user role caches", zap.Error(err))
 	}
 
-	userPermissions, err := u.getUserPermissions(ctx, userId)
+	userPermissions, err := userManager.GetUserPermissions(ctx, userId, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +120,7 @@ func (u *userRolePermissionManager) SetRolePermissions(ctx context.Context, role
 
 	isAdmin := strings.EqualFold(role.Name, roleConsts.DefaultAdminRoleName)
 
-	rolePermissions, err := u.getRolePermissions(ctx, roleId)
+	rolePermissions, err := roleManager.GetRolePermissions(ctx, roleId, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -173,44 +170,4 @@ func (u *userRolePermissionManager) RemoveUserRoleCaches(ctx context.Context, us
 	if err := u.cacheManager.Delete(ctx, permissions.GenerateUserRoleCacheKey(userId)); err != nil {
 		logging.Logger.Error("error in removing user roles caches", zap.Error(err))
 	}
-}
-
-func (u *userRolePermissionManager) getUserPermissions(ctx context.Context, userId int64) ([]models.UserRolePermission, error) {
-	query := `
-		select user_role_permissions.* 
-		from users join user_role_permissions on users.id = user_role_permissions.user_id 
-		where users.is_deleted = false and users.id = @userId
-	`
-
-	args := pgx.NamedArgs{
-		"userId": userId,
-	}
-
-	rows, err := u.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("unable to query user role permissions: %w", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[models.UserRolePermission])
-}
-
-func (u *userRolePermissionManager) getRolePermissions(ctx context.Context, roleId int64) ([]models.UserRolePermission, error) {
-	query := `
-		select user_role_permissions.* 
-		from roles join user_role_permissions on roles.id = user_role_permissions.role_id 
-		where roles.is_deleted = false and roles.id = @roleId
-	`
-
-	args := pgx.NamedArgs{
-		"roleId": roleId,
-	}
-
-	rows, err := u.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("unable to query user role permissions: %w", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[models.UserRolePermission])
 }

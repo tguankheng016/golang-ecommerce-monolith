@@ -20,6 +20,7 @@ type IUserManager interface {
 	GetUserRoleIds(ctx context.Context, userId int64) ([]int64, error)
 	GetUsersInRole(ctx context.Context, roleId int64) ([]models.User, error)
 	GetUserPermission(ctx context.Context, userId int64, permission string) (*models.UserRolePermission, error)
+	GetUserPermissions(ctx context.Context, userId int64, isGranted *bool) ([]models.UserRolePermission, error)
 
 	CreateUser(ctx context.Context, user *models.User, password string) error
 	CreateUserRole(ctx context.Context, userId int64, roleId int64) error
@@ -30,6 +31,8 @@ type IUserManager interface {
 
 	DeleteUser(ctx context.Context, userId int64) error
 	DeleteUserRole(ctx context.Context, userId int64, roleId int64) error
+	DeleteUserPermission(ctx context.Context, userId int64, permission string) error
+	DeleteUserPermissions(ctx context.Context, userId int64) error
 }
 
 type userManager struct {
@@ -248,4 +251,33 @@ func (u userManager) GetUserPermission(ctx context.Context, userId int64, permis
 	}
 
 	return &userPermission, nil
+}
+
+func (u userManager) GetUserPermissions(ctx context.Context, userId int64, isGranted *bool) ([]models.UserRolePermission, error) {
+	query := `
+		SELECT urp.* 
+		FROM users u
+		JOIN user_role_permissions urp on u.id = urp.user_id
+		WHERE u.is_deleted = false AND u.id = @userId AND (1 = @isGrantedAll OR urp.is_granted = @isGranted) LIMIT 1
+	`
+
+	args := pgx.NamedArgs{
+		"userId": userId,
+	}
+
+	if isGranted == nil {
+		args["isGrantedAll"] = 1
+		args["isGranted"] = true
+	} else {
+		args["isGrantedAll"] = 0
+		args["isGranted"] = *isGranted
+	}
+
+	rows, err := u.db.Query(ctx, query, args)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query user permissions: %w", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[models.UserRolePermission])
 }

@@ -18,6 +18,7 @@ type IRoleManager interface {
 	GetRoleById(ctx context.Context, roleId int64) (*models.Role, error)
 	GetRoleByName(ctx context.Context, name string) (*models.Role, error)
 	GetRolePermission(ctx context.Context, roleId int64, permission string) (*userModel.UserRolePermission, error)
+	GetRolePermissions(ctx context.Context, roleId int64, isGranted *bool) ([]userModel.UserRolePermission, error)
 
 	CreateRole(ctx context.Context, role *models.Role) error
 	CreateRolePermission(ctx context.Context, roleId int64, permission string, isGranted bool) error
@@ -174,4 +175,33 @@ func (r roleManager) GetRolePermission(ctx context.Context, roleId int64, permis
 	}
 
 	return &rolePermission, nil
+}
+
+func (r roleManager) GetRolePermissions(ctx context.Context, roleId int64, isGranted *bool) ([]userModel.UserRolePermission, error) {
+	query := `
+		SELECT urp.* 
+		FROM roles r
+		JOIN user_role_permissions urp on r.id = urp.role_id
+		WHERE r.is_deleted = false AND r.id = @roleId AND (1 = @isGrantedAll OR urp.is_granted = @isGranted) LIMIT 1
+	`
+
+	args := pgx.NamedArgs{
+		"roleId": roleId,
+	}
+
+	if isGranted == nil {
+		args["isGrantedAll"] = 1
+		args["isGranted"] = true
+	} else {
+		args["isGrantedAll"] = 0
+		args["isGranted"] = *isGranted
+	}
+
+	rows, err := r.db.Query(ctx, query, args)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query user role permissions: %w", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[userModel.UserRolePermission])
 }

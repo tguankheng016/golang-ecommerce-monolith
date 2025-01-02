@@ -296,6 +296,24 @@ func (u userManager) DeleteUserRole(ctx context.Context, userId int64, roleId in
 	return nil
 }
 
+func (u userManager) DeleteUserPermission(ctx context.Context, userId int64, permission string) error {
+	query := "DELETE FROM user_role_permissions WHERE user_id = $1 and name = $2"
+	if _, err := u.db.Exec(ctx, query, userId, permission); err != nil {
+		return fmt.Errorf("unable to delete user permission: %w", err)
+	}
+
+	return nil
+}
+
+func (u userManager) DeleteUserPermissions(ctx context.Context, userId int64) error {
+	query := "DELETE FROM user_role_permissions WHERE user_id = $1"
+	if _, err := u.db.Exec(ctx, query, userId); err != nil {
+		return fmt.Errorf("unable to delete user permissions: %w", err)
+	}
+
+	return nil
+}
+
 func (u userManager) validateUserName(ctx context.Context, user *models.User) error {
 	query := "select count(*) from users where normalized_user_name = @username and is_deleted = false and id != @id"
 

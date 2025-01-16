@@ -16,11 +16,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewCacheManager(options *RedisOptions) (*cache.Cache[string], error) {
+func NewCacheManager(options *RedisOptions) (*cache.Cache[string], *redis.Client, error) {
 	if options.Enabled {
-		return prepareRedis(options), nil
+		cache, redisClient := prepareRedis(options)
+		return cache, redisClient, nil
 	} else {
-		return prepareInMemory()
+		cache, err := prepareInMemory()
+		return cache, nil, err
 	}
 }
 
@@ -40,28 +42,54 @@ func prepareInMemory() (*cache.Cache[string], error) {
 	return cacheManager, nil
 }
 
-func prepareRedis(options *RedisOptions) *cache.Cache[string] {
-	redisStore := redis_store.NewRedis(redis.NewClient(&redis.Options{
+func prepareRedis(options *RedisOptions) (*cache.Cache[string], *redis.Client) {
+	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", options.Host, options.Port),
 		Password: options.Password,
 		DB:       options.Database,
 		PoolSize: options.PoolSize,
-	}))
+	})
+
+	redisStore := redis_store.NewRedis(client)
 
 	cacheManager := cache.New[string](redisStore)
 
-	return cacheManager
+	return cacheManager, client
 }
 
-func RunCaching(lc fx.Lifecycle, logger *zap.Logger, cache *cache.Cache[string], ctx context.Context) error {
+func RunCaching(lc fx.Lifecycle, logger *zap.Logger, options *RedisOptions, redisClient *redis.Client) error {
 	lc.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
+		OnStart: func(ctx context.Context) error {
 			logger.Info("starting cache manager...")
+
+			if options.Enabled {
+				logger.Info("connecting redis...")
+
+				if err := redisClient.Ping(ctx).Err(); err != nil {
+					logger.Error("error in connecting redis", zap.Error(err))
+				}
+
+				logger.Info("redis connected")
+			}
+
+			logger.Info("cache manager started")
 
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
 			logger.Info("close cache manager...")
+
+			if options.Enabled {
+				logger.Info("disconnecting redis...")
+
+				if err := redisClient.Close(); err != nil {
+					logger.Error("error in disconnecting redis", zap.Error(err))
+				}
+
+				logger.Info("redis disconnected")
+			}
+
+			logger.Info("cache manager closed")
 			return nil
 		},
 	})

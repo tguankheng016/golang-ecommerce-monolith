@@ -48,17 +48,7 @@ func NewHumaServer(router *chi.Mux, options *ServerOptions) *http.Server {
 	return server
 }
 
-func RunHumaServer(env environment.Environment, ctx context.Context, server *http.Server, cfg *ServerOptions, ln net.Listener) error {
-	go func() {
-		<-ctx.Done()
-		logging.Logger.Info("shutting down Http PORT: " + cfg.Port)
-		if err := server.Shutdown(ctx); err != nil {
-			logging.Logger.Error("(Shutdown) err: ", zap.Error(err))
-			return
-		}
-		logging.Logger.Info("huma server exited properly")
-	}()
-
+func RunHumaServer(env environment.Environment, server *http.Server, cfg *ServerOptions, ln net.Listener) error {
 	if env.IsTest() {
 		logging.Logger.Info("huma server started ...", zap.String("baseUrl", cfg.GetBasePath()))
 		err := server.Serve(ln)
@@ -70,19 +60,26 @@ func RunHumaServer(env environment.Environment, ctx context.Context, server *htt
 	}
 }
 
-func RunHumaServers(lc fx.Lifecycle, server *http.Server, ctx context.Context, cfg *ServerOptions, env environment.Environment, ln net.Listener) error {
+func RunHumaServers(lc fx.Lifecycle, server *http.Server, cfg *ServerOptions, env environment.Environment, ln net.Listener) error {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			go func() {
-				if err := RunHumaServer(env, ctx, server, cfg, ln); !errors.Is(err, http.ErrServerClosed) {
+				if err := RunHumaServer(env, server, cfg, ln); !errors.Is(err, http.ErrServerClosed) {
 					logging.Logger.Fatal("error running http server", zap.Error(err))
 				}
 			}()
 
 			return nil
 		},
-		OnStop: func(_ context.Context) error {
+		OnStop: func(ctx context.Context) error {
+			logging.Logger.Info("shutting down Http PORT: " + cfg.Port)
+
+			if err := server.Shutdown(ctx); err != nil {
+				logging.Logger.Error("(Shutdown) err: ", zap.Error(err))
+			}
+
 			logging.Logger.Info("all http servers shutdown gracefully...")
+
 			return nil
 		},
 	})

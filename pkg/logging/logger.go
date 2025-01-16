@@ -74,7 +74,7 @@ func InitLogger(env environment.Environment) *zap.Logger {
 // RunLogger sets up the fx lifecycle hooks for the zap logger.
 // It writes an info message when the application starts and another when the
 // application is stopping, and syncs the logger on stop.
-func RunLogger(lc fx.Lifecycle, logger *zap.Logger, ctx context.Context) error {
+func RunLogger(lc fx.Lifecycle, logger *zap.Logger) error {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			logger.Info("starting logger...")

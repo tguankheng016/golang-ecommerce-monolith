@@ -1,0 +1,27 @@
+{
+  "serverOptions": {
+    "name": "commerce_mono",
+    "port": "8000",
+    "host": "localhost"
+  },
+  "postgresOptions": {
+    "host": "localhost",
+    "port": 5433,
+    "user": "postgres",
+    "password": "myStong_Password123%23",
+    "dbName": "go_commerce_mono_db"
+  },
+  "authOptions": {
+    "secretKey": "Xq8JgG1f3yL7e5HqK8R7J8iTj2H6r9C9s5E3kA8nB2QwZ4eT",
+    "issuer": "golang-ecommerce-microservice",
+    "audience": "golang-ecommerce-microservice"
+  },
+  "redisOptions": {
+    "host": "localhost",
+    "port": 6379,
+    "password": "",
+    "database": 1,
+    "poolSize": 300,
+    "enabled": false
+  }
+}
